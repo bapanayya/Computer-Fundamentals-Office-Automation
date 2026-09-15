@@ -1,0 +1,617 @@
+/* ==========================================================================
+   Computer-Fund-OfficeAutomat-SVAGDC: Interactive Tools Stylesheet
+   S.V.A. Govt. Degree College, Srikalahasti - Department of Physics
+   ========================================================================== */
+
+/* --- Tool Container & Card Wrapper --- */
+.interactive-tool-section {
+  margin: 2.5rem 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  transition: box-shadow var(--transition-normal);
+}
+
+/* ==========================================================================
+   Mathematical Typography & Equation Display Cards
+   ========================================================================== */
+.math-display-formula {
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-medium);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius-md);
+  padding: 1.1rem 1.4rem;
+  font-family: 'Cambria Math', 'KaTeX_Math', 'Times New Roman', Georgia, serif;
+  font-size: 1.15rem;
+  line-height: 1.9;
+  color: var(--text-primary);
+  text-align: center;
+  overflow-x: auto;
+  margin: 1.25rem 0;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.math-sigma {
+  font-size: 1.4rem;
+  font-weight: 700;
+  vertical-align: -2px;
+  margin-right: 3px;
+  color: var(--primary);
+}
+
+.math-sub-super {
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: -0.4em;
+  font-size: 0.74rem;
+  line-height: 1.1;
+  text-align: left;
+  margin: 0 3px;
+}
+
+.interactive-tool-section:hover {
+  box-shadow: var(--card-shadow-hover);
+}
+
+.tool-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.4rem;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(2, 132, 199, 0.04));
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+[data-theme="dark"] .tool-card-header {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(15, 23, 42, 0.6));
+}
+
+.tool-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tool-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  background: var(--primary);
+  color: #ffffff;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.tool-title-text {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.tool-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tool-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--primary);
+}
+
+.tool-btn-primary {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+.tool-btn-primary:hover {
+  background: var(--primary-hover);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   1. Live In-Browser Spreadsheet Grid & Formula Engine
+   ========================================================================== */
+.spreadsheet-container {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-x: auto;
+}
+
+.spreadsheet-formula-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 0.4rem 0.75rem;
+}
+
+.formula-label-fx {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--primary);
+  user-select: none;
+}
+
+.formula-cell-ref {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  min-width: 44px;
+  text-align: center;
+}
+
+.formula-input-field {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.spreadsheet-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  max-height: 440px;
+}
+
+.spreadsheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.spreadsheet-table th, 
+.spreadsheet-table td {
+  border: 1px solid var(--border-subtle);
+  padding: 0.45rem 0.65rem;
+  white-space: nowrap;
+}
+
+.spreadsheet-table th {
+  background: var(--bg-sidebar);
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-align: center;
+  user-select: none;
+}
+
+.spreadsheet-table th.row-header {
+  width: 40px;
+  min-width: 40px;
+  background: var(--bg-sidebar);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.spreadsheet-table td.cell-input {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  cursor: cell;
+  position: relative;
+  transition: background-color var(--transition-fast);
+}
+
+.spreadsheet-table td.cell-input:focus-within,
+.spreadsheet-table td.cell-input.cell-active {
+  outline: 2px solid var(--primary);
+  background: var(--primary-light);
+  z-index: 2;
+}
+
+.spreadsheet-table input.cell-editor {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  outline: none;
+}
+
+.spreadsheet-sample-presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-sidebar);
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+}
+
+.preset-chip {
+  padding: 0.3rem 0.65rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.preset-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* ==========================================================================
+   2. Number System & Complement Calculator
+   ========================================================================== */
+.converter-container {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.converter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.radix-card {
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: border-color var(--transition-fast);
+}
+
+.radix-card:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.radix-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.radix-name {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+}
+
+.radix-base-badge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  background: var(--border-medium);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+}
+
+.radix-input {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 0.5rem 0.65rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.converter-complement-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-surface-elevated);
+  border: 1px dashed var(--border-medium);
+  border-radius: var(--radius-md);
+}
+
+.complement-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.complement-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.complement-val {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary);
+  word-break: break-all;
+}
+
+.converter-steps-box {
+  background: var(--bg-sidebar);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* ==========================================================================
+   3. Network Topology & Packet Routing Simulator
+   ========================================================================== */
+.topology-container {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.topology-controls-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.topology-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.topology-pill {
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.topology-pill.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+.topology-canvas-wrapper {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  height: 380px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.topology-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.topology-info-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-sidebar);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+}
+
+/* ==========================================================================
+   4. CPU Architecture & Memory Hierarchy Explorer
+   ========================================================================== */
+.architecture-explorer {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.cpu-block-diagram {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr 1fr;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .cpu-block-diagram {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cpu-unit-card {
+  background: var(--bg-surface-elevated);
+  border: 2px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 1.2rem;
+  text-align: center;
+  box-shadow: var(--card-shadow);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.cpu-unit-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+}
+
+.cpu-unit-icon {
+  font-size: 2rem;
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+}
+
+.cpu-unit-title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.cpu-unit-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.memory-pyramid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1rem 0;
+}
+
+.pyramid-tier {
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-sm);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-align: center;
+  box-shadow: var(--card-shadow);
+  transition: transform var(--transition-fast);
+}
+
+.pyramid-tier:hover {
+  transform: scale(1.03);
+}
+
+.tier-1 { width: 45%; background: #dc2626; } /* Registers */
+.tier-2 { width: 60%; background: #ea580c; } /* Cache L1/L2/L3 */
+.tier-3 { width: 75%; background: #2563eb; } /* RAM */
+.tier-4 { width: 90%; background: #059669; } /* SSD / NVMe / HDD */
+.tier-5 { width: 100%; background: #475569; } /* Cloud / Optical / Backup */
+
+/* ==========================================================================
+   5. Practical Lab Manual & Rubric Presentation Cards
+   ========================================================================== */
+.lab-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.lab-meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.lab-procedure-list {
+  counter-reset: lab-step;
+  list-style: none;
+  padding: 0;
+  margin: 1.5rem 0;
+}
+
+.lab-procedure-list li {
+  counter-increment: lab-step;
+  position: relative;
+  padding-left: 3rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.lab-procedure-list li::before {
+  content: counter(lab-step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rubric-table th {
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.shortcut-kbd-chip {
+  display: inline-block;
+  padding: 0.2rem 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 0 var(--border-medium);
+}
