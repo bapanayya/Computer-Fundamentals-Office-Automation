@@ -615,3 +615,1352 @@
   border-radius: var(--radius-sm);
   box-shadow: 0 1px 0 var(--border-medium);
 }
+
+/* ==========================================================================
+   Unit 3: Interactive Word Processor & Mail Merge Studio Styles
+   ========================================================================== */
+.wordproc-tool-container {
+  border-top: 4px solid #2563eb;
+}
+
+.wp-preset-select {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.wp-ribbon {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.wp-ribbon-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.wp-group-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wp-ribbon-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.wp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: all var(--transition-fast);
+}
+
+.wp-btn:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.wp-btn-text {
+  width: auto;
+  padding: 0 0.5rem;
+  gap: 0.3rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.wp-btn-primary {
+  width: auto;
+  padding: 0 0.6rem;
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  font-weight: 600;
+  font-size: 0.76rem;
+}
+
+.wp-btn-primary:hover {
+  background: var(--primary-hover);
+  color: #ffffff;
+}
+
+.wp-btn-toggle.active {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
+.wp-select {
+  padding: 0.22rem 0.4rem;
+  font-size: 0.78rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.wp-color-picker {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: transparent;
+}
+
+.wp-merge-group {
+  border-color: #bae6fd;
+  background: rgba(224, 242, 254, 0.4);
+}
+
+[data-theme="dark"] .wp-merge-group {
+  border-color: #0369a1;
+  background: rgba(3, 105, 161, 0.15);
+}
+
+.wp-record-indicator {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.18rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.wp-workspace {
+  background: #64748b22;
+  padding: 1.5rem 1rem;
+  overflow-x: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wp-ruler-bar {
+  width: 100%;
+  max-width: 780px;
+  height: 18px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 1rem;
+  box-sizing: border-box;
+}
+
+.ruler-mark {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.wp-page-container {
+  width: 100%;
+  max-width: 780px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  border-radius: 2px;
+}
+
+.wp-paper-page {
+  min-height: 480px;
+  background: #ffffff;
+  color: #1e293b;
+  padding: 2.5rem 3rem;
+  outline: none;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  font-family: 'Times New Roman', Georgia, serif;
+}
+
+[data-theme="dark"] .wp-paper-page {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+
+.merge-token {
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  border: 1px dashed #0284c7;
+}
+
+.wp-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: var(--bg-sidebar);
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.wp-status-left, .wp-status-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.wp-status-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+}
+
+/* ==========================================================================
+   Unit 3: Presentation Studio & Slide Deck Player Styles
+   ========================================================================== */
+.presentation-tool-container {
+  border-top: 4px solid #8b5cf6;
+}
+
+.ppt-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.65rem 1rem;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ppt-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ppt-group-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.ppt-select {
+  padding: 0.28rem 0.55rem;
+  font-size: 0.8rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.ppt-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.ppt-tool-btn:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.btn-primary-accent {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  color: #ffffff !important;
+  border: none;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.3);
+}
+
+.btn-primary-accent:hover {
+  background: linear-gradient(135deg, #6d28d9, #4338ca);
+  transform: translateY(-1px);
+}
+
+.ppt-workspace {
+  display: flex;
+  min-height: 420px;
+  background: #0f172a15;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ppt-thumbnails-rail {
+  width: 175px;
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+  padding: 0.75rem 0.5rem;
+  overflow-y: auto;
+  max-height: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.ppt-thumb-card {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: var(--radius-md);
+  border: 2px solid transparent;
+  transition: all var(--transition-fast);
+}
+
+.ppt-thumb-card:hover {
+  background: var(--bg-hover);
+}
+
+.ppt-thumb-card.active {
+  border-color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.ppt-thumb-num {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 16px;
+  text-align: right;
+}
+
+.ppt-thumb-preview {
+  flex: 1;
+  height: 70px;
+  border-radius: 4px;
+  padding: 6px;
+  background: #1e3a8a;
+  color: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.ppt-thumb-title {
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ppt-thumb-snippet {
+  font-size: 0.55rem;
+  opacity: 0.7;
+  margin-top: 4px;
+  line-height: 1.2;
+}
+
+.ppt-stage-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  overflow: hidden;
+}
+
+.ppt-slide-canvas {
+  width: 100%;
+  max-width: 680px;
+  min-height: 380px;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  padding: 2.5rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.ppt-slide-layout-title {
+  text-align: center;
+}
+
+.ppt-title-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.15);
+  margin-bottom: 1rem;
+}
+
+.ppt-slide-h1 {
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1.25;
+  margin: 0 0 0.75rem 0;
+}
+
+.ppt-slide-subtitle {
+  font-size: 1.05rem;
+  font-weight: 500;
+  margin: 0 0 1.25rem 0;
+  line-height: 1.4;
+}
+
+.ppt-slide-meta {
+  font-size: 0.82rem;
+  opacity: 0.75;
+}
+
+.ppt-slide-h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+}
+
+.ppt-slide-subhead {
+  font-size: 0.95rem;
+  margin: 0 0 1.25rem 0;
+}
+
+.ppt-slide-bullet-list {
+  padding-left: 1.5rem;
+  margin: 0;
+  line-height: 1.8;
+  font-size: 0.95rem;
+}
+
+.ppt-two-col-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.ppt-col-card {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+}
+
+.ppt-col-card h3 {
+  margin: 0 0 0.4rem 0;
+  font-size: 1rem;
+}
+
+.ppt-col-card p {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.ppt-notes-bar {
+  padding: 0.6rem 1rem;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.ppt-notes-header {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.3rem;
+}
+
+.ppt-notes-editor {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  outline: none;
+  min-height: 24px;
+}
+
+/* Slide Transition Animations */
+.ppt-anim-fade {
+  animation: pptFade 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes pptFade {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.ppt-anim-slide-left {
+  animation: pptSlideLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes pptSlideLeft {
+  from { opacity: 0; transform: translateX(50px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.ppt-anim-zoom {
+  animation: pptZoom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes pptZoom {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.ppt-anim-flip {
+  animation: pptFlip 0.5s ease;
+}
+@keyframes pptFlip {
+  from { opacity: 0; transform: perspective(600px) rotateY(25deg); }
+  to { opacity: 1; transform: perspective(600px) rotateY(0deg); }
+}
+
+/* Fullscreen Slide Show */
+.ppt-show-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000000;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ppt-show-canvas {
+  width: 90vw;
+  max-width: 1100px;
+  height: 82vh;
+  border-radius: var(--radius-lg);
+  padding: 4rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+}
+
+.ppt-show-controls {
+  position: absolute;
+  bottom: 25px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 0.5rem 1.25rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ppt-show-btn {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+}
+
+.ppt-show-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.ppt-show-counter {
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Unit 5: Pivot Table & Dynamic Charts Slicer Styles
+   ========================================================================== */
+.pivot-tool-container {
+  border-top: 4px solid #10b981;
+}
+
+.pivot-dataset-pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  background: var(--bg-sidebar);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-medium);
+}
+
+.pivot-slicers-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.65rem 1.25rem;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
+.pivot-slicer-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pivot-slicer-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pivot-slicer-chips {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.slicer-chip {
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.slicer-chip:hover {
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.slicer-chip.active {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.pivot-body-grid {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+@media (max-width: 860px) {
+  .pivot-body-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pivot-field-matrix {
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.pivot-matrix-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 0.4rem;
+}
+
+.pivot-quadrant-block {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem;
+}
+
+.quadrant-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.pivot-field-select {
+  width: 100%;
+  padding: 0.32rem 0.5rem;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.pivot-values-dual-row {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.pivot-agg-select {
+  width: 85px;
+  flex-shrink: 0;
+  font-weight: 700;
+  color: #10b981;
+}
+
+.pivot-display-area {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  overflow-x: auto;
+}
+
+.pivot-table-wrapper {
+  overflow-x: auto;
+}
+
+.pivot-result-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  border: 1px solid var(--border-medium);
+}
+
+.pivot-result-table th, .pivot-result-table td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  text-align: right;
+}
+
+.pivot-result-table th {
+  background: var(--bg-sidebar);
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.pivot-corner-header, .pivot-row-header-label {
+  text-align: left !important;
+}
+
+.pivot-row-title {
+  text-align: left !important;
+  background: var(--bg-surface-elevated);
+}
+
+.pivot-row-grand {
+  background: var(--bg-sidebar);
+  font-weight: 700;
+}
+
+.pivot-total-row {
+  background: var(--bg-sidebar);
+  font-weight: 800;
+}
+
+.pivot-grand-total {
+  background: #dcfce7 !important;
+  color: #065f46 !important;
+  font-weight: 800;
+}
+
+[data-theme="dark"] .pivot-grand-total {
+  background: #064e3b !important;
+  color: #a7f3d0 !important;
+}
+
+.pivot-chart-container {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.pivot-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pivot-chart-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pivot-chart-legend {
+  display: flex;
+  gap: 0.85rem;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.pivot-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.legend-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.pivot-svg-chart {
+  width: 100%;
+  height: 220px;
+  display: block;
+}
+
+/* ==========================================================================
+   Unit 5: What-If Analysis (Goal Seek & Scenario Manager) Styles
+   ========================================================================== */
+.whatif-tool-container {
+  border-top: 4px solid #f59e0b;
+}
+
+.whatif-mode-toggle {
+  display: flex;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-medium);
+  border-radius: var(--radius-full);
+  padding: 2px;
+}
+
+.btn-mode-pill {
+  padding: 0.3rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-mode-pill.active {
+  background: #f59e0b;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+}
+
+.whatif-intro-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  background: rgba(245, 158, 11, 0.1);
+  border-left: 4px solid #f59e0b;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+
+.whatif-intro-banner i {
+  color: #f59e0b;
+  font-size: 1.15rem;
+  margin-top: 2px;
+}
+
+.goalseek-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 1.25rem;
+  padding: 0 1.25rem 1.25rem 1.25rem;
+}
+
+@media (max-width: 860px) {
+  .goalseek-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.goalseek-sheet-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.sheet-card-title, .dialog-title, .scenario-header-title, .chart-card-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.goalseek-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.goalseek-data-table th, .goalseek-data-table td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+}
+
+.goalseek-data-table th {
+  background: var(--bg-sidebar);
+  text-align: left;
+}
+
+.badge-fixed {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-sidebar);
+  color: var(--text-muted);
+}
+
+.badge-variable {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background: #fef3c7;
+  color: #b45309;
+  font-weight: 700;
+}
+
+.changing-row {
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.cell-highlight {
+  color: #b45309;
+  font-size: 0.95rem;
+}
+
+.pct-highlight {
+  color: #2563eb;
+  font-size: 1.05rem;
+}
+
+.result-row {
+  background: var(--bg-sidebar);
+  font-weight: 800;
+}
+
+.goalseek-dialog-card {
+  background: var(--bg-surface);
+  border: 1.5px solid #f59e0b;
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.12);
+}
+
+.dialog-field {
+  margin-bottom: 0.75rem;
+}
+
+.dialog-field label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.dialog-input {
+  width: 100%;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.btn-dialog-run {
+  flex: 1;
+  padding: 0.5rem;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-dialog-run:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  transform: translateY(-1px);
+}
+
+.btn-dialog-reset {
+  padding: 0.5rem 0.85rem;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.dialog-iteration-box {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 0.76rem;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.iter-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed var(--border-subtle);
+}
+
+.iter-summary {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+.iter-summary.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.iter-summary.warning {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Scenario Manager Table */
+.scenario-container {
+  padding: 0 1.25rem 1.25rem 1.25rem;
+}
+
+.scenario-table-wrapper {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+.scenario-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.scenario-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.scenario-summary-table th, .scenario-summary-table td {
+  padding: 0.55rem 0.85rem;
+  border: 1px solid var(--border-subtle);
+}
+
+.scenario-summary-table th {
+  text-align: left;
+}
+
+.section-divider {
+  background: var(--bg-sidebar);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Unit 5: Executive KPI Dashboard Styles
+   ========================================================================== */
+.dashboard-tool-container {
+  border-top: 4px solid #0284c7;
+}
+
+.dash-slicers-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.dash-slicer-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dash-slicer-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.dash-slicer-pills {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.dash-pill-btn {
+  padding: 0.28rem 0.7rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dash-pill-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+.dash-year-select {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.78rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.dash-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .dash-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 500px) {
+  .dash-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kpi-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.kpi-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.kpi-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+
+.kpi-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin: 2px 0;
+}
+
+.kpi-delta {
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.kpi-delta.positive {
+  color: #10b981;
+}
+
+.dash-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 0 1.25rem 1.25rem 1.25rem;
+}
+
+@media (max-width: 860px) {
+  .dash-charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dash-chart-card, .dash-table-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 1.1rem;
+}
+
+.dash-table-card {
+  margin: 0 1.25rem 1.25rem 1.25rem;
+}
+
+.dash-svg-chart {
+  width: 100%;
+  height: 220px;
+  display: block;
+}
+
+.dash-grade-legend-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.grade-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+}
+
+.grade-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.grade-legend-label {
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.grade-legend-val {
+  color: var(--text-primary);
+}
+
+.dash-audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.dash-audit-table th, .dash-audit-table td {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+}
+
+.dash-audit-table th {
+  background: var(--bg-sidebar);
+  text-align: left;
+}
+
+.badge-pct {
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.pct-high {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.pct-mid {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.audit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-full);
+}
+
+.audit-pass {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.audit-review {
+  background: #fef3c7;
+  color: #92400e;
+}
+

@@ -37,6 +37,37 @@
     }
   }
 
+  // --- Math Formatting (KaTeX) ---
+  function renderMath(el) {
+    if (!el) return;
+    const doRender = () => {
+      if (typeof window.renderMathInElement === 'function') {
+        try {
+          window.renderMathInElement(el, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '$', right: '$', display: false },
+              { left: '\\[', right: '\\]', display: true },
+              { left: '\\(', right: '\\)', display: false }
+            ],
+            ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+            throwOnError: false
+          });
+        } catch (err) {
+          console.warn('Math auto-render error:', err);
+        }
+      }
+    };
+
+    if (window.katex && window.renderMathInElement) {
+      doRender();
+    } else {
+      setTimeout(doRender, 80);
+      setTimeout(doRender, 300);
+      setTimeout(doRender, 800);
+    }
+  }
+
   // --- Topic Rendering ---
   function renderTopic(topicId) {
     if (!window.CurriculumData) return;
@@ -107,6 +138,9 @@
 
     mainContainer.innerHTML = html;
 
+    // Render Mathematical Equations via KaTeX
+    renderMath(mainContainer);
+
     // Scroll main pane to top smoothly
     const mainPane = document.getElementById('app-main');
     if (mainPane) mainPane.scrollTop = 0;
@@ -122,6 +156,21 @@
         const preset = topic.id.includes('salary') ? 'payroll' : 
                        (topic.id.includes('search') || topic.id.includes('vlookup') ? 'lookups' : 'marks');
         window.SpreadsheetEngine.create(toolMount, { initialPreset: preset });
+      } else if ((topic.toolType === 'wordprocessor' || topic.toolType === 'mailmerge') && window.WordProcessorEngine) {
+        const preset = topic.id.includes('resume') ? 'resume' : 
+                       (topic.id.includes('leave') ? 'leave_letter' : 
+                       (topic.toolType === 'mailmerge' || topic.id.includes('merge') ? 'mailmerge' : 'report'));
+        window.WordProcessorEngine.create(toolMount, { initialPreset: preset, mode: topic.toolType });
+      } else if (topic.toolType === 'presentation' && window.PresentationEngine) {
+        const preset = topic.id.includes('physics') || topic.id.includes('lab') ? 'physics' : 'general';
+        window.PresentationEngine.create(toolMount, { initialPreset: preset });
+      } else if (topic.toolType === 'pivottable' && window.PivotEngine) {
+        window.PivotEngine.create(toolMount, { topicId: topic.id });
+      } else if (topic.toolType === 'whatif' && window.WhatIfEngine) {
+        const mode = topic.id.includes('scenario') ? 'scenario' : 'goalseek';
+        window.WhatIfEngine.create(toolMount, { mode: mode });
+      } else if (topic.toolType === 'dashboard' && window.DashboardEngine) {
+        window.DashboardEngine.create(toolMount, { topicId: topic.id });
       }
     }
 
