@@ -130,6 +130,53 @@
           <li><strong>Experimental Measurements:</strong> Photoluminescence spectroscopy and UV-Vis absorption spectrophotometry.</li>
         </ul>
       `
+    },
+    lab_report: {
+      title: 'Physics Laboratory Experiment Record',
+      content: `
+        <h2 style="text-align: center; color: #1e3a8a; margin-bottom: 4px;">S.V.A. GOVT. DEGREE COLLEGE, SRIKALAHASTI</h2>
+        <p style="text-align: center; font-size: 0.95rem; color: #475569; margin-top: 0;">Department of Physics &bull; Laboratory Observation Record</p>
+        <hr style="border: 0; border-top: 2px solid #2563eb; margin: 10px 0;">
+        
+        <p><strong>Experiment:</strong> Wavelength Determination of Laser Diode using Diffraction Grating<br>
+        <strong>Student:</strong> K. Ramesh Babu &nbsp;&bull;&nbsp; <strong>Roll No:</strong> 23PH01 &nbsp;&bull;&nbsp; <strong>Date:</strong> 28-09-2026</p>
+        
+        <h3>1. Aim &amp; Apparatus</h3>
+        <p><strong>Aim:</strong> To measure the wavelength (&lambda;) of spectral emission from a Semiconductor Diode Laser using a transmission diffraction grating.</p>
+        <p><strong>Apparatus:</strong> Diode laser source (650 nm), diffraction grating (15,000 LPI), optical bench, calibrated meter scale, screen.</p>
+        
+        <h3>2. Governing Principle &amp; Formula</h3>
+        <div style="background: #f8fafc; border-left: 4px solid #2563eb; padding: 10px 14px; margin: 8px 0;">
+          <p style="margin: 0;"><strong>Grating Equation:</strong> <code>(a + b) &bull; sin(&theta;) = n &bull; &lambda;</code></p>
+          <p style="margin: 4px 0 0 0; font-size: 0.88rem; color: #475569;">Where <code>(a + b)</code> is the grating element, <code>n</code> is the diffraction order, and <code>&theta;</code> is the diffraction angle.</p>
+        </div>
+        
+        <h3>3. Tabular Observations</h3>
+        <table style="width: 100%; border-collapse: collapse; margin: 10px 0;" border="1">
+          <thead>
+            <tr style="background: #f1f5f9;">
+              <th style="padding: 6px; text-align: center;">Order (n)</th>
+              <th style="padding: 6px; text-align: center;">Distance D (cm)</th>
+              <th style="padding: 6px; text-align: center;">Spot Separation 2x (cm)</th>
+              <th style="padding: 6px; text-align: center;">Calculated &lambda; (nm)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding: 6px; text-align: center;">n = 1</td><td style="padding: 6px; text-align: center;">100.0</td><td style="padding: 6px; text-align: center;">38.4</td><td style="padding: 6px; text-align: center;">652.8 nm</td></tr>
+            <tr><td style="padding: 6px; text-align: center;">n = 2</td><td style="padding: 6px; text-align: center;">100.0</td><td style="padding: 6px; text-align: center;">82.6</td><td style="padding: 6px; text-align: center;">649.5 nm</td></tr>
+          </tbody>
+        </table>
+        
+        <h3>4. Result &amp; Inferences</h3>
+        <p>The experimental wavelength of the laser diode was determined to be <strong>&lambda; = 651.15 nm</strong> (Standard reference: 650.0 nm; percentage error &lt; 0.2%).</p>
+      `
+    },
+    blank: {
+      title: 'Blank Document',
+      content: `
+        <h2 style="color: #1e3a8a;">Untitled Document</h2>
+        <p>Start typing or designing your departmental document here...</p>
+      `
     }
   };
 
@@ -141,6 +188,12 @@
       this.currentRecipientIdx = 0;
       this.isPreviewActive = false;
       this.mergedDrafts = [];
+      this.findMatchesList = [];
+      this.currentMatchIndex = -1;
+      this.isFindReplaceOpen = false;
+      this.orientation = 'portrait';
+      this.margins = 'normal';
+      this.lineHeight = '1.5';
       this.init();
     }
 
@@ -166,11 +219,16 @@
               <select class="wp-preset-select" id="wp_preset_select" title="Load Academic Template">
                 <option value="leave_letter" ${this.presetKey === 'leave_letter' ? 'selected' : ''}>📄 Leave Letter (Lab 4)</option>
                 <option value="resume" ${this.presetKey === 'resume' ? 'selected' : ''}>📋 Student Resume (Lab 3)</option>
+                <option value="lab_report" ${this.presetKey === 'lab_report' ? 'selected' : ''}>🔬 Physics Lab Record (Exp. 1)</option>
                 <option value="mailmerge" ${this.presetKey === 'mailmerge' ? 'selected' : ''}>✉️ Mail Merge Template</option>
                 <option value="report" ${this.presetKey === 'report' ? 'selected' : ''}>📑 Seminar Abstract</option>
+                <option value="blank" ${this.presetKey === 'blank' ? 'selected' : ''}>📝 Blank Document</option>
               </select>
+              <button type="button" class="btn-tool-action btn-success-accent" id="wp_btn_export_doc" title="Download as MS Word Document (.doc)"><i class="fa-solid fa-file-word"></i> Word (.doc)</button>
+              <button type="button" class="btn-tool-action" id="wp_btn_export_txt" title="Download Plain Text (.txt)"><i class="fa-solid fa-file-lines"></i> Text (.txt)</button>
               <button type="button" class="btn-tool-action" id="wp_btn_copy" title="Copy Document HTML"><i class="fa-regular fa-copy"></i> Copy</button>
               <button type="button" class="btn-tool-action" id="wp_btn_print" title="Print / PDF View"><i class="fa-solid fa-print"></i> Print</button>
+              <button type="button" class="btn-tool-action text-danger" id="wp_btn_clear" title="Clear Document"><i class="fa-solid fa-eraser"></i> Clear</button>
             </div>
           </div>
 
@@ -205,6 +263,8 @@
                 <button type="button" class="wp-btn" data-cmd="italic" title="Italic (Ctrl+I)"><i class="fa-solid fa-italic"></i></button>
                 <button type="button" class="wp-btn" data-cmd="underline" title="Underline (Ctrl+U)"><i class="fa-solid fa-underline"></i></button>
                 <button type="button" class="wp-btn" data-cmd="strikeThrough" title="Strikethrough"><i class="fa-solid fa-strikethrough"></i></button>
+                <button type="button" class="wp-btn" data-cmd="subscript" title="Subscript (X₂)"><i class="fa-solid fa-subscript"></i></button>
+                <button type="button" class="wp-btn" data-cmd="superscript" title="Superscript (X²)"><i class="fa-solid fa-superscript"></i></button>
                 <input type="color" id="wp_fore_color" class="wp-color-picker" value="#1e293b" title="Text Color">
                 <input type="color" id="wp_hilite_color" class="wp-color-picker" value="#fef08a" title="Highlight Color">
               </div>
@@ -224,20 +284,46 @@
                 <button type="button" class="wp-btn" data-cmd="insertOrderedList" title="Numbered List"><i class="fa-solid fa-list-ol"></i></button>
                 <button type="button" class="wp-btn" data-cmd="outdent" title="Decrease Indent"><i class="fa-solid fa-outdent"></i></button>
                 <button type="button" class="wp-btn" data-cmd="indent" title="Increase Indent"><i class="fa-solid fa-indent"></i></button>
+                <select class="wp-select" id="wp_line_spacing" title="Line Spacing">
+                  <option value="1.0">Line: 1.0</option>
+                  <option value="1.15">Line: 1.15</option>
+                  <option value="1.5" selected>Line: 1.5</option>
+                  <option value="2.0">Line: 2.0</option>
+                </select>
               </div>
             </div>
 
-            <!-- Insert Group -->
+            <!-- Page Layout Group -->
             <div class="wp-ribbon-group">
-              <span class="wp-group-label">Insert</span>
+              <span class="wp-group-label">Page Layout</span>
               <div class="wp-ribbon-row">
-                <button type="button" class="wp-btn wp-btn-text" id="wp_btn_insert_table" title="Insert 3x3 Table"><i class="fa-solid fa-table"></i> Table</button>
+                <select class="wp-select" id="wp_page_margins" title="Margins">
+                  <option value="normal" selected>Margins: Normal</option>
+                  <option value="narrow">Margins: Narrow</option>
+                  <option value="compact">Margins: Compact (0.25cm)</option>
+                </select>
+              </div>
+              <div class="wp-ribbon-row">
+                <select class="wp-select" id="wp_page_orientation" title="Orientation">
+                  <option value="portrait" selected>Portrait</option>
+                  <option value="landscape">Landscape</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Insert & Tools Group -->
+            <div class="wp-ribbon-group">
+              <span class="wp-group-label">Insert &amp; Tools</span>
+              <div class="wp-ribbon-row">
+                <button type="button" class="wp-btn wp-btn-text" id="wp_btn_insert_table" title="Insert Custom Table"><i class="fa-solid fa-table"></i> Table</button>
+                <button type="button" class="wp-btn wp-btn-text" id="wp_btn_insert_image" title="Insert Image / Diagram"><i class="fa-solid fa-image"></i> Image</button>
                 <button type="button" class="wp-btn wp-btn-text" id="wp_btn_insert_callout" title="Insert Callout Card"><i class="fa-solid fa-circle-info"></i> Note</button>
               </div>
               <div class="wp-ribbon-row">
                 <button type="button" class="wp-btn" data-cmd="insertHorizontalRule" title="Horizontal Line"><i class="fa-solid fa-minus"></i></button>
                 <button type="button" class="wp-btn" data-cmd="undo" title="Undo (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i></button>
                 <button type="button" class="wp-btn" data-cmd="redo" title="Redo (Ctrl+Y)"><i class="fa-solid fa-rotate-right"></i></button>
+                <button type="button" class="wp-btn wp-btn-text" id="wp_btn_toggle_find" title="Find &amp; Replace (Ctrl+F)"><i class="fa-solid fa-magnifying-glass"></i> Find</button>
               </div>
             </div>
 
@@ -267,6 +353,28 @@
             </div>
           </div>
 
+          <!-- Floating Find & Replace Bar -->
+          <div class="wp-find-replace-bar" id="wp_find_replace_bar" style="display: none;">
+            <div class="wp-fr-group">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" class="wp-fr-input" id="wp_find_input" placeholder="Find in document...">
+              <span class="wp-fr-counter" id="wp_find_counter">0 of 0</span>
+            </div>
+            <div class="wp-fr-buttons">
+              <button type="button" class="wp-fr-btn" id="wp_find_prev" title="Previous match"><i class="fa-solid fa-chevron-up"></i></button>
+              <button type="button" class="wp-fr-btn" id="wp_find_next" title="Next match"><i class="fa-solid fa-chevron-down"></i></button>
+            </div>
+            <div class="wp-fr-group">
+              <i class="fa-solid fa-repeat"></i>
+              <input type="text" class="wp-fr-input" id="wp_replace_input" placeholder="Replace with...">
+            </div>
+            <div class="wp-fr-buttons">
+              <button type="button" class="wp-fr-btn" id="wp_btn_replace" title="Replace current match">Replace</button>
+              <button type="button" class="wp-fr-btn" id="wp_btn_replace_all" title="Replace all occurrences">Replace All</button>
+            </div>
+            <button type="button" class="wp-fr-close" id="wp_find_close" title="Close Find &amp; Replace">&times;</button>
+          </div>
+
           <!-- Document Workspace Wrapper -->
           <div class="wp-workspace">
             <div class="wp-ruler-bar">
@@ -276,7 +384,7 @@
             </div>
 
             <!-- Page Canvas -->
-            <div class="wp-page-container">
+            <div class="wp-page-container" id="wp_page_container">
               <div class="wp-paper-page" id="wp_editor_page" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true">
                 <!-- Injected via preset -->
               </div>
@@ -371,28 +479,43 @@
         });
       }
 
+      // Line Spacing
+      const lineSpacing = this.container.querySelector('#wp_line_spacing');
+      if (lineSpacing) {
+        lineSpacing.addEventListener('change', () => {
+          this.setLineHeight(lineSpacing.value);
+        });
+      }
+
+      // Page Margins
+      const pageMargins = this.container.querySelector('#wp_page_margins');
+      if (pageMargins) {
+        pageMargins.addEventListener('change', () => {
+          this.setMargins(pageMargins.value);
+        });
+      }
+
+      // Page Orientation
+      const pageOrientation = this.container.querySelector('#wp_page_orientation');
+      if (pageOrientation) {
+        pageOrientation.addEventListener('change', () => {
+          this.setOrientation(pageOrientation.value);
+        });
+      }
+
       // Insert Table
       const btnTable = this.container.querySelector('#wp_btn_insert_table');
       if (btnTable) {
         btnTable.addEventListener('click', () => {
-          const tableHtml = `
-            <table style="width: 100%; border-collapse: collapse; margin: 12px 0;" border="1">
-              <thead>
-                <tr style="background: #f1f5f9;">
-                  <th style="padding: 6px;">Header 1</th>
-                  <th style="padding: 6px;">Header 2</th>
-                  <th style="padding: 6px;">Header 3</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td style="padding: 6px;">Cell 1</td><td style="padding: 6px;">Cell 2</td><td style="padding: 6px;">Cell 3</td></tr>
-                <tr><td style="padding: 6px;">Cell 4</td><td style="padding: 6px;">Cell 5</td><td style="padding: 6px;">Cell 6</td></tr>
-              </tbody>
-            </table>
-            <p><br></p>
-          `;
-          document.execCommand('insertHTML', false, tableHtml);
-          this.updateStats();
+          this.insertCustomTable();
+        });
+      }
+
+      // Insert Image / Diagram
+      const btnImage = this.container.querySelector('#wp_btn_insert_image');
+      if (btnImage) {
+        btnImage.addEventListener('click', () => {
+          this.insertImage();
         });
       }
 
@@ -402,14 +525,108 @@
         btnCallout.addEventListener('click', () => {
           const calloutHtml = `
             <div style="background: #eff6ff; border-left: 4px solid #2563eb; padding: 10px 14px; margin: 10px 0; border-radius: 4px;">
-              <strong>Note:</strong> Enter important departmental observation or remark here.
+              <strong>Note:</strong> Enter important departmental observation, safety protocol, or remark here.
             </div>
             <p><br></p>
           `;
+          editor.focus();
           document.execCommand('insertHTML', false, calloutHtml);
           this.updateStats();
         });
       }
+
+      // Export MS Word (.doc)
+      const exportDocBtn = this.container.querySelector('#wp_btn_export_doc');
+      if (exportDocBtn) {
+        exportDocBtn.addEventListener('click', () => {
+          this.exportToWord();
+        });
+      }
+
+      // Export Plain Text (.txt)
+      const exportTxtBtn = this.container.querySelector('#wp_btn_export_txt');
+      if (exportTxtBtn) {
+        exportTxtBtn.addEventListener('click', () => {
+          this.exportToTxt();
+        });
+      }
+
+      // Clear Document
+      const clearBtn = this.container.querySelector('#wp_btn_clear');
+      if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+          this.clearDocument();
+        });
+      }
+
+      // Find & Replace Toolbar Toggle
+      const findBtn = this.container.querySelector('#wp_btn_toggle_find');
+      if (findBtn) {
+        findBtn.addEventListener('click', () => {
+          this.toggleFindReplace();
+        });
+      }
+
+      const findClose = this.container.querySelector('#wp_find_close');
+      if (findClose) {
+        findClose.addEventListener('click', () => {
+          this.toggleFindReplace();
+        });
+      }
+
+      // Find & Replace Inputs & Buttons
+      const findInput = this.container.querySelector('#wp_find_input');
+      const replaceInput = this.container.querySelector('#wp_replace_input');
+      const findNextBtn = this.container.querySelector('#wp_find_next');
+      const findPrevBtn = this.container.querySelector('#wp_find_prev');
+      const replaceBtn = this.container.querySelector('#wp_btn_replace');
+      const replaceAllBtn = this.container.querySelector('#wp_btn_replace_all');
+
+      if (findInput) {
+        findInput.addEventListener('input', () => {
+          this.highlightMatches(findInput.value);
+        });
+        findInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            if (e.shiftKey) {
+              this.findPrev();
+            } else {
+              this.findNext();
+            }
+          }
+        });
+      }
+
+      if (findNextBtn) {
+        findNextBtn.addEventListener('click', () => this.findNext());
+      }
+
+      if (findPrevBtn) {
+        findPrevBtn.addEventListener('click', () => this.findPrev());
+      }
+
+      if (replaceBtn) {
+        replaceBtn.addEventListener('click', () => {
+          this.replaceCurrent(replaceInput ? replaceInput.value : '');
+        });
+      }
+
+      if (replaceAllBtn) {
+        replaceAllBtn.addEventListener('click', () => {
+          const q = findInput ? findInput.value : '';
+          const r = replaceInput ? replaceInput.value : '';
+          this.replaceAll(q, r);
+        });
+      }
+
+      // Keyboard Shortcut: Ctrl+F to open Find & Replace
+      editor.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+          e.preventDefault();
+          this.toggleFindReplace();
+        }
+      });
 
       // Preset Selector
       const presetSelect = this.container.querySelector('#wp_preset_select');
@@ -580,6 +797,325 @@
       if (wEl) wEl.textContent = `Words: ${words}`;
       if (cEl) cEl.textContent = `Characters: ${chars}`;
       if (rEl) rEl.textContent = `Est. Read: ${readTime} min`;
+    }
+
+    setMargins(type) {
+      this.margins = type;
+      const pageContainer = this.container.querySelector('#wp_page_container');
+      if (!pageContainer) return;
+      pageContainer.classList.remove('margins-narrow', 'margins-compact');
+      if (type === 'narrow') {
+        pageContainer.classList.add('margins-narrow');
+      } else if (type === 'compact') {
+        pageContainer.classList.add('margins-compact');
+      }
+    }
+
+    setOrientation(type) {
+      this.orientation = type;
+      const pageContainer = this.container.querySelector('#wp_page_container');
+      if (!pageContainer) return;
+      if (type === 'landscape') {
+        pageContainer.classList.add('orientation-landscape');
+      } else {
+        pageContainer.classList.remove('orientation-landscape');
+      }
+    }
+
+    setLineHeight(val) {
+      this.lineHeight = val;
+      const editor = this.container.querySelector('#wp_editor_page');
+      if (editor) {
+        editor.style.lineHeight = val;
+      }
+    }
+
+    exportToWord() {
+      const editor = this.container.querySelector('#wp_editor_page');
+      if (!editor) return;
+      const orientation = this.orientation === 'landscape' ? 'landscape' : 'portrait';
+      const marginsCss = this.margins === 'compact' ? '0.25cm' : (this.margins === 'narrow' ? '1.27cm' : '2.54cm');
+      const htmlContent = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset='utf-8'>
+          <title>${this.presetKey || 'Document'}</title>
+          <!--[if gte mso 9]>
+          <xml>
+          <w:WordDocument>
+          <w:View>Print</w:View>
+          <w:Zoom>100</w:Zoom>
+          <w:DoNotOptimizeForBrowser/>
+          </w:WordDocument>
+          </xml>
+          <![endif]-->
+          <style>
+            @page Section1 {
+              size: ${orientation === 'landscape' ? '11in 8.5in' : '8.5in 11in'};
+              margin: ${marginsCss};
+              mso-page-orientation: ${orientation};
+            }
+            div.Section1 { page: Section1; }
+            body {
+              font-family: 'Times New Roman', serif;
+              font-size: 11pt;
+              line-height: ${this.lineHeight};
+              color: #1e293b;
+            }
+            table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+            th, td { border: 1px solid #334155; padding: 6px 10px; font-size: 10pt; }
+            th { background-color: #f1f5f9; font-weight: bold; }
+            h1, h2, h3, h4 { color: #1e3a8a; }
+            p { margin: 6px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="Section1">
+            ${editor.innerHTML}
+          </div>
+        </body>
+        </html>
+      `;
+      const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${this.presetKey || 'document'}_export.doc`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    exportToTxt() {
+      const editor = this.container.querySelector('#wp_editor_page');
+      if (!editor) return;
+      const text = editor.innerText || editor.textContent || '';
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${this.presetKey || 'document'}_export.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    clearDocument() {
+      const editor = this.container.querySelector('#wp_editor_page');
+      if (!editor) return;
+      if (confirm('Clear the current document and start with a blank page?')) {
+        editor.innerHTML = '<p><br></p>';
+        this.clearFindHighlights();
+        this.updateStats();
+        editor.focus();
+      }
+    }
+
+    insertCustomTable() {
+      const rowsInput = prompt('Enter number of rows (e.g. 2 to 10):', '3');
+      if (rowsInput === null) return;
+      const colsInput = prompt('Enter number of columns (e.g. 2 to 8):', '3');
+      if (colsInput === null) return;
+      const rows = Math.max(1, Math.min(20, parseInt(rowsInput, 10) || 3));
+      const cols = Math.max(1, Math.min(10, parseInt(colsInput, 10) || 3));
+
+      let headerThs = '';
+      for (let c = 1; c <= cols; c++) {
+        headerThs += `<th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left; background: #f8fafc;">Column ${c}</th>`;
+      }
+      let bodyRows = '';
+      for (let r = 1; r <= rows; r++) {
+        let tds = '';
+        for (let c = 1; c <= cols; c++) {
+          tds += `<td style="padding: 8px; border: 1px solid #cbd5e1;">Data R${r}C${c}</td>`;
+        }
+        bodyRows += `<tr>${tds}</tr>`;
+      }
+
+      const tableHtml = `
+        <table style="width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.95rem;" border="1">
+          <thead>
+            <tr style="background: #f1f5f9;">${headerThs}</tr>
+          </thead>
+          <tbody>
+            ${bodyRows}
+          </tbody>
+        </table>
+        <p><br></p>
+      `;
+      const editor = this.container.querySelector('#wp_editor_page');
+      if (editor) editor.focus();
+      document.execCommand('insertHTML', false, tableHtml);
+      this.updateStats();
+    }
+
+    insertImage() {
+      const url = prompt(
+        'Enter Image URL (or press OK to use sample Physics Optics diagram):',
+        'https://images.unsplash.com/photo-1507668077129-56e32842fceb?w=600&auto=format&fit=crop&q=80'
+      );
+      if (!url) return;
+      const imgHtml = `
+        <div style="text-align: center; margin: 14px 0;">
+          <img src="${url}" alt="Academic Diagram" style="max-width: 90%; height: auto; border-radius: 6px; box-shadow: 0 3px 10px rgba(0,0,0,0.15); border: 1px solid #cbd5e1;" />
+          <p style="font-size: 0.85rem; color: #64748b; margin-top: 4px; font-style: italic;">Figure: Experimental diagram / Scientific visual illustration</p>
+        </div>
+        <p><br></p>
+      `;
+      const editor = this.container.querySelector('#wp_editor_page');
+      if (editor) editor.focus();
+      document.execCommand('insertHTML', false, imgHtml);
+      this.updateStats();
+    }
+
+    toggleFindReplace() {
+      const bar = this.container.querySelector('#wp_find_replace_bar');
+      if (!bar) return;
+      this.isFindReplaceOpen = !this.isFindReplaceOpen;
+      bar.style.display = this.isFindReplaceOpen ? 'flex' : 'none';
+      if (this.isFindReplaceOpen) {
+        const input = this.container.querySelector('#wp_find_input');
+        if (input) {
+          input.focus();
+          input.select();
+          if (input.value) this.highlightMatches(input.value);
+        }
+      } else {
+        this.clearFindHighlights();
+      }
+    }
+
+    clearFindHighlights() {
+      const editor = this.container.querySelector('#wp_editor_page');
+      if (!editor) return;
+      const marks = editor.querySelectorAll('mark.wp-find-highlight');
+      marks.forEach(m => {
+        const parent = m.parentNode;
+        while (m.firstChild) {
+          parent.insertBefore(m.firstChild, m);
+        }
+        parent.removeChild(m);
+      });
+      editor.normalize();
+      this.findMatchesList = [];
+      this.currentMatchIndex = -1;
+      this.updateFindCounter();
+    }
+
+    highlightMatches(query) {
+      this.clearFindHighlights();
+      if (!query || query.trim() === '') return;
+      const editor = this.container.querySelector('#wp_editor_page');
+      if (!editor) return;
+
+      const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escaped, 'gi');
+
+      const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null, false);
+      const textNodes = [];
+      let node;
+      while ((node = walker.nextNode())) {
+        if (node.nodeValue && regex.test(node.nodeValue)) {
+          textNodes.push(node);
+        }
+      }
+
+      textNodes.forEach(textNode => {
+        const parent = textNode.parentNode;
+        if (parent && parent.nodeName === 'MARK') return;
+        const text = textNode.nodeValue;
+        const frag = document.createDocumentFragment();
+        let lastIdx = 0;
+        let match;
+        regex.lastIndex = 0;
+        while ((match = regex.exec(text)) !== null) {
+          if (match.index > lastIdx) {
+            frag.appendChild(document.createTextNode(text.substring(lastIdx, match.index)));
+          }
+          const mark = document.createElement('mark');
+          mark.className = 'wp-find-highlight';
+          mark.textContent = match[0];
+          frag.appendChild(mark);
+          lastIdx = regex.lastIndex;
+        }
+        if (lastIdx < text.length) {
+          frag.appendChild(document.createTextNode(text.substring(lastIdx)));
+        }
+        parent.replaceChild(frag, textNode);
+      });
+
+      this.findMatchesList = Array.from(editor.querySelectorAll('mark.wp-find-highlight'));
+      this.currentMatchIndex = this.findMatchesList.length > 0 ? 0 : -1;
+      this.focusCurrentMatch();
+    }
+
+    focusCurrentMatch() {
+      this.findMatchesList.forEach((m, idx) => {
+        m.classList.toggle('current', idx === this.currentMatchIndex);
+      });
+      if (this.currentMatchIndex >= 0 && this.findMatchesList[this.currentMatchIndex]) {
+        const cur = this.findMatchesList[this.currentMatchIndex];
+        cur.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      this.updateFindCounter();
+    }
+
+    findNext() {
+      if (this.findMatchesList.length === 0) return;
+      this.currentMatchIndex = (this.currentMatchIndex + 1) % this.findMatchesList.length;
+      this.focusCurrentMatch();
+    }
+
+    findPrev() {
+      if (this.findMatchesList.length === 0) return;
+      this.currentMatchIndex = (this.currentMatchIndex - 1 + this.findMatchesList.length) % this.findMatchesList.length;
+      this.focusCurrentMatch();
+    }
+
+    updateFindCounter() {
+      const counter = this.container.querySelector('#wp_find_counter');
+      if (!counter) return;
+      const total = this.findMatchesList.length;
+      const current = total > 0 && this.currentMatchIndex >= 0 ? this.currentMatchIndex + 1 : 0;
+      counter.textContent = `${current} of ${total}`;
+    }
+
+    replaceCurrent(replacement) {
+      if (this.currentMatchIndex < 0 || !this.findMatchesList[this.currentMatchIndex]) return;
+      const cur = this.findMatchesList[this.currentMatchIndex];
+      const textNode = document.createTextNode(replacement || '');
+      const parent = cur.parentNode;
+      parent.replaceChild(textNode, cur);
+      const input = this.container.querySelector('#wp_find_input');
+      const query = input ? input.value : '';
+      this.highlightMatches(query);
+      this.updateStats();
+    }
+
+    replaceAll(query, replacement) {
+      if (!query) return;
+      this.clearFindHighlights();
+      const editor = this.container.querySelector('#wp_editor_page');
+      if (!editor) return;
+      const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escaped, 'gi');
+
+      const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null, false);
+      const textNodes = [];
+      let node;
+      while ((node = walker.nextNode())) {
+        if (node.nodeValue && regex.test(node.nodeValue)) {
+          textNodes.push(node);
+        }
+      }
+      textNodes.forEach(tn => {
+        tn.nodeValue = tn.nodeValue.replace(regex, replacement || '');
+      });
+      editor.normalize();
+      this.updateStats();
+      this.highlightMatches(query);
     }
   }
 

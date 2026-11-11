@@ -161,10 +161,12 @@
       } else if ((topic.toolType === 'wordprocessor' || topic.toolType === 'mailmerge') && window.WordProcessorEngine) {
         const preset = topic.id.includes('resume') ? 'resume' : 
                        (topic.id.includes('leave') ? 'leave_letter' : 
-                       (topic.toolType === 'mailmerge' || topic.id.includes('merge') ? 'mailmerge' : 'report'));
+                       (topic.id.includes('lab') || topic.id.includes('physics') || topic.id.includes('experiment') ? 'lab_report' :
+                       (topic.toolType === 'mailmerge' || topic.id.includes('merge') ? 'mailmerge' : 'report')));
         window.WordProcessorEngine.create(toolMount, { initialPreset: preset, mode: topic.toolType });
       } else if (topic.toolType === 'presentation' && window.PresentationEngine) {
-        const preset = topic.id.includes('physics') || topic.id.includes('lab') ? 'physics' : 'general';
+        const preset = topic.id.includes('animation') || topic.id.includes('transition') || topic.id.includes('suite') ? 'office_suite' :
+                       (topic.id.includes('physics') || topic.id.includes('lab') ? 'physics' : 'general');
         window.PresentationEngine.create(toolMount, { initialPreset: preset });
       } else if (topic.toolType === 'pivottable' && window.PivotEngine) {
         window.PivotEngine.create(toolMount, { topicId: topic.id });
