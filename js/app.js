@@ -153,8 +153,10 @@
       } else if (topic.toolType === 'topology' && window.TopologySimulatorEngine) {
         window.TopologySimulatorEngine.mount(toolMount);
       } else if (topic.toolType === 'spreadsheet' && window.SpreadsheetEngine) {
-        const preset = topic.id.includes('salary') ? 'payroll' : 
-                       (topic.id.includes('search') || topic.id.includes('vlookup') ? 'lookups' : 'marks');
+        const preset = topic.id.includes('salary') || topic.id.includes('payroll') ? 'payroll' : 
+                       (topic.id.includes('search') || topic.id.includes('vlookup') || topic.id.includes('lookup') ? 'lookups' : 
+                       (topic.id.includes('text') ? 'text' :
+                       (topic.id.includes('timetable') ? 'timetable' : 'marks')));
         window.SpreadsheetEngine.create(toolMount, { initialPreset: preset });
       } else if ((topic.toolType === 'wordprocessor' || topic.toolType === 'mailmerge') && window.WordProcessorEngine) {
         const preset = topic.id.includes('resume') ? 'resume' : 

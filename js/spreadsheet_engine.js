@@ -1,146 +1,349 @@
 /**
  * Computer-Fund-OfficeAutomat-SVAGDC: Live Interactive In-Browser Spreadsheet Engine
  * Department of Physics, S.V.A. Govt. Degree College, Srikalahasti
+ *
+ * Full-featured Excel-compatible spreadsheet engine with:
+ * - Text Functions: TEXTJOIN, CONCAT, CONCATENATE, LEFT, RIGHT, MID, LEN, TRIM, UPPER, LOWER, PROPER, REPT, FIND, SEARCH, SUBSTITUTE
+ * - Math & Stats: SUM, AVERAGE, COUNT, COUNTA, COUNTBLANK, COUNTIF, SUMIF, AVERAGEIF, MIN, MAX, LARGE, SMALL, ROUND, ROUNDUP, ROUNDDOWN, INT, ABS, MOD, POWER, SQRT, PRODUCT
+ * - Logical: IF (nested), AND, OR, NOT, IFERROR, TRUE, FALSE
+ * - Lookups: VLOOKUP, HLOOKUP, XLOOKUP, INDEX, MATCH
+ * - Date & Info: TODAY, NOW, YEAR, MONTH, DAY, ISBLANK, ISNUMBER, ISTEXT
+ * - Operators: +, -, *, /, %, ^, &, =, <>, !=, <, >, <=, >=
+ * - Cell Formatting: Fill color, Text color, Bold, Italic, Alignment (Left, Center, Right)
+ * - Dynamic Grid: Add/Remove Rows and Columns, Clear Sheet, Rich Practice Presets
  */
 
 (function(window) {
   'use strict';
 
-  // Spreadsheet Engine Model
   class MiniSpreadsheet {
     constructor(containerId, options = {}) {
       this.container = typeof containerId === 'string' ? document.getElementById(containerId) : containerId;
-      this.rows = options.rows || 10;
-      this.cols = options.cols || 6;
-      this.data = {}; // key: 'A1', val: { raw: '', computed: '' }
+      this.rows = options.rows || 18;
+      this.cols = options.cols || 10;
+      this.data = {}; // key: 'A1', val: { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'left' }
       this.activeCell = 'A1';
-      this.colNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+      this.currentPreset = options.initialPreset || 'marks';
+      this.colNames = [
+        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
+        'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
+        'U', 'V', 'W', 'X', 'Y', 'Z'
+      ];
 
       if (options.initialData) {
         this.loadData(options.initialData);
       } else {
-        this.loadSampleData('marks');
+        this.loadSampleData(this.currentPreset);
       }
 
       this.render();
     }
 
+    // --- Column Coordinate Helpers ---
+    colNameToIndex(col) {
+      let idx = 0;
+      for (let i = 0; i < col.length; i++) {
+        idx = idx * 26 + (col.charCodeAt(i) - 64);
+      }
+      return idx; // 1-based: A=1, B=2 ... Z=26
+    }
+
+    indexToColName(idx) {
+      let name = '';
+      while (idx > 0) {
+        const rem = (idx - 1) % 26;
+        name = String.fromCharCode(65 + rem) + name;
+        idx = Math.floor((idx - 1) / 26);
+      }
+      return name;
+    }
+
+    // --- Data Management ---
     loadData(dataObj) {
       this.data = {};
       for (const [k, v] of Object.entries(dataObj)) {
-        this.data[k.toUpperCase()] = { raw: String(v), computed: '' };
+        const ref = k.toUpperCase().replace(/\$/g, '');
+        if (typeof v === 'object' && v !== null && v.raw !== undefined) {
+          this.data[ref] = {
+            raw: String(v.raw),
+            computed: '',
+            bgColor: v.bgColor || '',
+            textColor: v.textColor || '',
+            bold: !!v.bold,
+            italic: !!v.italic,
+            align: v.align || 'left'
+          };
+        } else {
+          this.data[ref] = {
+            raw: String(v),
+            computed: '',
+            bgColor: '',
+            textColor: '',
+            bold: false,
+            italic: false,
+            align: 'left'
+          };
+        }
       }
       this.recalculateAll();
     }
 
     loadSampleData(presetName) {
+      this.currentPreset = presetName;
+      this.data = {};
+
       if (presetName === 'marks') {
+        this.rows = Math.max(this.rows, 18);
+        this.cols = Math.max(this.cols, 10);
         this.data = {
-          'A1': { raw: 'Student Name', computed: '' },
-          'B1': { raw: 'Physics', computed: '' },
-          'C1': { raw: 'Comp Sci', computed: '' },
-          'D1': { raw: 'Total', computed: '' },
-          'E1': { raw: 'Average', computed: '' },
-          'F1': { raw: 'Result', computed: '' },
+          'A1': { raw: 'Student Name', bold: true, bgColor: '#f1f5f9' },
+          'B1': { raw: 'Physics', bold: true, bgColor: '#f1f5f9' },
+          'C1': { raw: 'Comp Sci', bold: true, bgColor: '#f1f5f9' },
+          'D1': { raw: 'Maths', bold: true, bgColor: '#f1f5f9' },
+          'E1': { raw: 'Total Marks', bold: true, bgColor: '#f1f5f9' },
+          'F1': { raw: 'Average %', bold: true, bgColor: '#f1f5f9' },
+          'G1': { raw: 'Result Status', bold: true, bgColor: '#f1f5f9' },
+          'H1': { raw: 'Grade Classification', bold: true, bgColor: '#f1f5f9' },
 
-          'A2': { raw: 'Ramesh', computed: '' },
-          'B2': { raw: '85', computed: '' },
-          'C2': { raw: '90', computed: '' },
-          'D2': { raw: '=SUM(B2:C2)', computed: '' },
-          'E2': { raw: '=AVERAGE(B2:C2)', computed: '' },
-          'F2': { raw: '=IF(E2>=50,"Pass","Fail")', computed: '' },
+          'A2': { raw: 'Ramesh' },
+          'B2': { raw: '85' },
+          'C2': { raw: '90' },
+          'D2': { raw: '88' },
+          'E2': { raw: '=SUM(B2:D2)' },
+          'F2': { raw: '=ROUND(AVERAGE(B2:D2), 1)' },
+          'G2': { raw: '=IF(AND(B2>=35, C2>=35, D2>=35), "Pass", "Fail")', textColor: '#15803d', bold: true },
+          'H2': { raw: '=IF(F2>=75, "Distinction", IF(F2>=60, "First Class", IF(F2>=50, "Second Class", "Pass")))' },
 
-          'A3': { raw: 'Sita', computed: '' },
-          'B3': { raw: '78', computed: '' },
-          'C3': { raw: '82', computed: '' },
-          'D3': { raw: '=SUM(B3:C3)', computed: '' },
-          'E3': { raw: '=AVERAGE(B3:C3)', computed: '' },
-          'F3': { raw: '=IF(E3>=50,"Pass","Fail")', computed: '' },
+          'A3': { raw: 'Sita' },
+          'B3': { raw: '78' },
+          'C3': { raw: '82' },
+          'D3': { raw: '75' },
+          'E3': { raw: '=SUM(B3:D3)' },
+          'F3': { raw: '=ROUND(AVERAGE(B3:D3), 1)' },
+          'G3': { raw: '=IF(AND(B3>=35, C3>=35, D3>=35), "Pass", "Fail")', textColor: '#15803d', bold: true },
+          'H3': { raw: '=IF(F3>=75, "Distinction", IF(F3>=60, "First Class", IF(F3>=50, "Second Class", "Pass")))' },
 
-          'A4': { raw: 'Kiran', computed: '' },
-          'B4': { raw: '42', computed: '' },
-          'C4': { raw: '38', computed: '' },
-          'D4': { raw: '=SUM(B4:C4)', computed: '' },
-          'E4': { raw: '=AVERAGE(B4:C4)', computed: '' },
-          'F4': { raw: '=IF(E4>=50,"Pass","Fail")', computed: '' },
+          'A4': { raw: 'Kiran' },
+          'B4': { raw: '42' },
+          'C4': { raw: '32' },
+          'D4': { raw: '48' },
+          'E4': { raw: '=SUM(B4:D4)' },
+          'F4': { raw: '=ROUND(AVERAGE(B4:D4), 1)' },
+          'G4': { raw: '=IF(AND(B4>=35, C4>=35, D4>=35), "Pass", "Fail")', textColor: '#b91c1c', bold: true },
+          'H4': { raw: '=IF(F4>=75, "Distinction", IF(F4>=60, "First Class", IF(F4>=50, "Second Class", "Pass")))' },
 
-          'A5': { raw: 'Highest', computed: '' },
-          'B5': { raw: '=MAX(B2:B4)', computed: '' },
-          'C5': { raw: '=MAX(C2:C4)', computed: '' },
-          'D5': { raw: '=MAX(D2:D4)', computed: '' },
-          'E5': { raw: '=AVERAGE(E2:E4)', computed: '' },
-          'F5': { raw: 'COUNT: =COUNT(B2:B4)', computed: '' }
+          'A5': { raw: 'Priya' },
+          'B5': { raw: '92' },
+          'C5': { raw: '95' },
+          'D5': { raw: '94' },
+          'E5': { raw: '=SUM(B5:D5)' },
+          'F5': { raw: '=ROUND(AVERAGE(B5:D5), 1)' },
+          'G5': { raw: '=IF(AND(B5>=35, C5>=35, D5>=35), "Pass", "Fail")', textColor: '#15803d', bold: true },
+          'H5': { raw: '=IF(F5>=75, "Distinction", IF(F5>=60, "First Class", IF(F5>=50, "Second Class", "Pass")))' },
+
+          'A6': { raw: 'Summary Stats', bold: true, bgColor: '#e0f2fe' },
+          'B6': { raw: 'Class Max:', bold: true },
+          'C6': { raw: '=MAX(B2:D5)' },
+          'D6': { raw: 'Class Min:', bold: true },
+          'E6': { raw: '=MIN(B2:D5)' },
+          'F6': { raw: 'Pass Count:', bold: true },
+          'G6': { raw: '=COUNTIF(G2:G5, "Pass")', bold: true, textColor: '#15803d' },
+          'H6': { raw: 'Fail: =COUNTIF(G2:G5, "Fail")', textColor: '#b91c1c' }
+        };
+      } else if (presetName === 'text') {
+        this.rows = Math.max(this.rows, 18);
+        this.cols = Math.max(this.cols, 10);
+        this.data = {
+          'A1': { raw: 'Subject Name', bold: true, bgColor: '#f1f5f9' },
+          'B1': { raw: 'Dept Code', bold: true, bgColor: '#f1f5f9' },
+          'C1': { raw: 'Course Level', bold: true, bgColor: '#f1f5f9' },
+          'D1': { raw: 'Full Tag (CONCAT)', bold: true, bgColor: '#e0f2fe' },
+          'E1': { raw: 'UPPER Case', bold: true, bgColor: '#e0f2fe' },
+          'F1': { raw: 'Code Prefix (LEFT)', bold: true, bgColor: '#e0f2fe' },
+          'G1': { raw: 'Length (LEN)', bold: true, bgColor: '#e0f2fe' },
+          'H1': { raw: 'Curriculum List (TEXTJOIN)', bold: true, bgColor: '#fef3c7' },
+
+          'A2': { raw: 'Physics' },
+          'B2': { raw: 'PHY-101' },
+          'C2': { raw: 'Undergraduate' },
+          'D2': { raw: '=CONCAT(A2, " (", B2, ")")' },
+          'E2': { raw: '=UPPER(A2)' },
+          'F2': { raw: '=LEFT(B2, 3)' },
+          'G2': { raw: '=LEN(A2)' },
+          'H2': { raw: '=TEXTJOIN(", ", TRUE, A2:A5)', bold: true, textColor: '#0369a1' },
+
+          'A3': { raw: 'Chemistry' },
+          'B3': { raw: 'CHE-101' },
+          'C3': { raw: 'Undergraduate' },
+          'D2': { raw: '=CONCAT(A2, " (", B2, ")")' },
+          'D3': { raw: '=CONCAT(A3, " (", B3, ")")' },
+          'E3': { raw: '=UPPER(A3)' },
+          'F3': { raw: '=LEFT(B3, 3)' },
+          'G3': { raw: '=LEN(A3)' },
+          'H3': { raw: 'Try: =TEXTJOIN(" - ", TRUE, B2:B5)' },
+
+          'A4': { raw: 'Maths' },
+          'B4': { raw: 'MAT-101' },
+          'C4': { raw: 'Undergraduate' },
+          'D4': { raw: '=CONCAT(A4, " (", B4, ")")' },
+          'E4': { raw: '=UPPER(A4)' },
+          'F4': { raw: '=LEFT(B4, 3)' },
+          'G4': { raw: '=LEN(A4)' },
+
+          'A5': { raw: 'Computer Science' },
+          'B5': { raw: 'CSC-101' },
+          'C5': { raw: 'Undergraduate' },
+          'D5': { raw: '=CONCAT(A5, " (", B5, ")")' },
+          'E5': { raw: '=UPPER(A5)' },
+          'F5': { raw: '=LEFT(B5, 3)' },
+          'G5': { raw: '=LEN(A5)' },
+
+          'A7': { raw: 'Formula Practice Box:', bold: true, bgColor: '#fef3c7' },
+          'B7': { raw: '=PROPER("s.v.a. govt degree college")' },
+          'C7': { raw: '=MID(B2, 5, 3)' },
+          'D7': { raw: '=TRIM("   Department   of   Physics   ")' }
         };
       } else if (presetName === 'payroll') {
+        this.rows = Math.max(this.rows, 18);
+        this.cols = Math.max(this.cols, 10);
         this.data = {
-          'A1': { raw: 'Emp Name', computed: '' },
-          'B1': { raw: 'Basic Pay', computed: '' },
-          'C1': { raw: 'DA (30%)', computed: '' },
-          'D1': { raw: 'HRA (16%)', computed: '' },
-          'E1': { raw: 'Gross Pay', computed: '' },
-          'F1': { raw: 'PF (12%)', computed: '' },
+          'A1': { raw: 'Emp Name', bold: true, bgColor: '#f1f5f9' },
+          'B1': { raw: 'Basic Pay', bold: true, bgColor: '#f1f5f9' },
+          'C1': { raw: 'DA (30%)', bold: true, bgColor: '#f1f5f9' },
+          'D1': { raw: 'HRA (16%)', bold: true, bgColor: '#f1f5f9' },
+          'E1': { raw: 'Gross Pay', bold: true, bgColor: '#bbf7d0' },
+          'F1': { raw: 'PF (12%)', bold: true, bgColor: '#fecdd3' },
+          'G1': { raw: 'Net Salary', bold: true, bgColor: '#bae6fd' },
 
-          'A2': { raw: 'Bapanayya', computed: '' },
-          'B2': { raw: '50000', computed: '' },
-          'C2': { raw: '=B2*0.30', computed: '' },
-          'D2': { raw: '=B2*0.16', computed: '' },
-          'E2': { raw: '=SUM(B2:D2)', computed: '' },
-          'F2': { raw: '=B2*0.12', computed: '' },
+          'A2': { raw: 'Dr. Bapanayya' },
+          'B2': { raw: '50000' },
+          'C2': { raw: '=B2*30%' },
+          'D2': { raw: '=B2*16%' },
+          'E2': { raw: '=SUM(B2:D2)' },
+          'F2': { raw: '=B2*12%' },
+          'G2': { raw: '=E2-F2', bold: true },
 
-          'A3': { raw: 'Suresh', computed: '' },
-          'B3': { raw: '42000', computed: '' },
-          'C3': { raw: '=B3*0.30', computed: '' },
-          'D3': { raw: '=B3*0.16', computed: '' },
-          'E3': { raw: '=SUM(B3:D3)', computed: '' },
-          'F3': { raw: '=B3*0.12', computed: '' },
+          'A3': { raw: 'Suresh Kumar' },
+          'B3': { raw: '42000' },
+          'C3': { raw: '=B3*30%' },
+          'D3': { raw: '=B3*16%' },
+          'E3': { raw: '=SUM(B3:D3)' },
+          'F3': { raw: '=B3*12%' },
+          'G3': { raw: '=E3-F3', bold: true },
 
-          'A4': { raw: 'Anitha', computed: '' },
-          'B4': { raw: '48000', computed: '' },
-          'C4': { raw: '=B4*0.30', computed: '' },
-          'D4': { raw: '=B4*0.16', computed: '' },
-          'E4': { raw: '=SUM(B4:D4)', computed: '' },
-          'F4': { raw: '=B4*0.12', computed: '' }
+          'A4': { raw: 'Anitha Devi' },
+          'B4': { raw: '48000' },
+          'C4': { raw: '=B4*30%' },
+          'D4': { raw: '=B4*16%' },
+          'E4': { raw: '=SUM(B4:D4)' },
+          'F4': { raw: '=B4*12%' },
+          'G4': { raw: '=E4-F4', bold: true },
+
+          'A5': { raw: 'Total Department Payroll:', bold: true, bgColor: '#f1f5f9' },
+          'B5': { raw: '=SUM(B2:B4)', bold: true },
+          'E5': { raw: '=SUM(E2:E4)', bold: true },
+          'G5': { raw: '=SUM(G2:G4)', bold: true, textColor: '#1e40af' }
         };
       } else if (presetName === 'lookups') {
+        this.rows = Math.max(this.rows, 18);
+        this.cols = Math.max(this.cols, 10);
         this.data = {
-          'A1': { raw: 'Emp ID', computed: '' },
-          'B1': { raw: 'Name', computed: '' },
-          'C1': { raw: 'Dept', computed: '' },
-          'D1': { raw: 'Salary', computed: '' },
-          'E1': { raw: 'Search ID', computed: '' },
-          'F1': { raw: 'Lookup Result', computed: '' },
+          'A1': { raw: 'Emp ID', bold: true, bgColor: '#f1f5f9' },
+          'B1': { raw: 'Staff Name', bold: true, bgColor: '#f1f5f9' },
+          'C1': { raw: 'Department', bold: true, bgColor: '#f1f5f9' },
+          'D1': { raw: 'Monthly Salary', bold: true, bgColor: '#f1f5f9' },
+          'E1': { raw: 'Status', bold: true, bgColor: '#f1f5f9' },
+          'F1': { raw: 'Target ID', bold: true, bgColor: '#fef3c7' },
+          'G1': { raw: 'Lookup Result', bold: true, bgColor: '#fef3c7' },
+          'H1': { raw: 'Lookup Method', bold: true, bgColor: '#fef3c7' },
 
-          'A2': { raw: '101', computed: '' },
-          'B2': { raw: 'Dr. Rao', computed: '' },
-          'C2': { raw: 'Physics', computed: '' },
-          'D2': { raw: '75000', computed: '' },
-          'E2': { raw: '102', computed: '' },
-          'F2': { raw: '=VLOOKUP(E2, A2:D4, 2, FALSE)', computed: '' },
+          'A2': { raw: '101' },
+          'B2': { raw: 'Dr. Rao' },
+          'C2': { raw: 'Physics' },
+          'D2': { raw: '75000' },
+          'E2': { raw: 'Confirmed' },
+          'F2': { raw: '102', bold: true, textColor: '#0284c7' },
+          'G2': { raw: '=VLOOKUP(F2, A2:D4, 2, FALSE)', bold: true },
+          'H2': { raw: 'VLOOKUP (Name)' },
 
-          'A3': { raw: '102', computed: '' },
-          'B3': { raw: 'Priya', computed: '' },
-          'C3': { raw: 'Computers', computed: '' },
-          'D3': { raw: '62000', computed: '' },
-          'E3': { raw: 'Salary Lookup', computed: '' },
-          'F3': { raw: '=XLOOKUP(E2, A2:A4, D2:D4)', computed: '' },
+          'A3': { raw: '102' },
+          'B3': { raw: 'Priya Sharma' },
+          'C3': { raw: 'Computers' },
+          'D3': { raw: '62000' },
+          'E3': { raw: 'Confirmed' },
+          'F3': { raw: '103', bold: true, textColor: '#0284c7' },
+          'G3': { raw: '=XLOOKUP(F3, A2:A4, D2:D4)', bold: true },
+          'H3': { raw: 'XLOOKUP (Salary)' },
 
-          'A4': { raw: '103', computed: '' },
-          'B4': { raw: 'Kavitha', computed: '' },
-          'C4': { raw: 'Electronics', computed: '' },
-          'D4': { raw: '58000', computed: '' },
-          'E4': { raw: 'Index Match', computed: '' },
-          'F4': { raw: '=INDEX(C2:C4, MATCH(E2, A2:A4, 0))', computed: '' }
+          'A4': { raw: '103' },
+          'B4': { raw: 'Kavitha M' },
+          'C4': { raw: 'Electronics' },
+          'D4': { raw: '58000' },
+          'E4': { raw: 'Probation' },
+          'F4': { raw: '101', bold: true, textColor: '#0284c7' },
+          'G4': { raw: '=INDEX(C2:C4, MATCH(F4, A2:A4, 0))', bold: true },
+          'H4': { raw: 'INDEX + MATCH (Dept)' },
+
+          'F5': { raw: '999', bold: true, textColor: '#b91c1c' },
+          'G5': { raw: '=IFERROR(VLOOKUP(F5, A2:D4, 2, FALSE), "ID Not Found")', bold: true, textColor: '#b91c1c' },
+          'H5': { raw: 'IFERROR Handling' }
         };
+      } else if (presetName === 'timetable') {
+        this.rows = Math.max(this.rows, 18);
+        this.cols = Math.max(this.cols, 10);
+        this.data = {
+          'A1': { raw: 'Day / Time', bold: true, bgColor: '#f1f5f9' },
+          'B1': { raw: '10:00 - 10:50', bold: true, bgColor: '#f1f5f9' },
+          'C1': { raw: '10:50 - 11:40', bold: true, bgColor: '#f1f5f9' },
+          'D1': { raw: '11:40 - 11:50', bold: true, bgColor: '#fef08a' },
+          'E1': { raw: '11:50 - 12:40', bold: true, bgColor: '#f1f5f9' },
+          'F1': { raw: '12:40 - 01:30', bold: true, bgColor: '#fed7aa' },
+          'G1': { raw: '01:30 - 02:20', bold: true, bgColor: '#f1f5f9' },
+          'H1': { raw: '02:20 - 03:10', bold: true, bgColor: '#f1f5f9' },
+
+          'A2': { raw: 'Monday', bold: true },
+          'B2': { raw: 'Physics Theory' },
+          'C2': { raw: 'Comp Science' },
+          'D2': { raw: 'TEA BREAK', bgColor: '#fef08a', bold: true },
+          'E2': { raw: 'Mathematics' },
+          'F2': { raw: 'LUNCH BREAK', bgColor: '#fed7aa', bold: true },
+          'G2': { raw: 'Physics Lab (Batch A)', bgColor: '#bbf7d0' },
+          'H2': { raw: 'Physics Lab (Batch A)', bgColor: '#bbf7d0' },
+
+          'A3': { raw: 'Tuesday', bold: true },
+          'B3': { raw: 'Mathematics' },
+          'C3': { raw: 'Physics Theory' },
+          'D3': { raw: 'TEA BREAK', bgColor: '#fef08a', bold: true },
+          'E3': { raw: 'Comp Science' },
+          'F3': { raw: 'LUNCH BREAK', bgColor: '#fed7aa', bold: true },
+          'G3': { raw: 'General English' },
+          'H3': { raw: 'Skill Course' },
+
+          'A4': { raw: 'Wednesday', bold: true },
+          'B4': { raw: 'Comp Science' },
+          'C4': { raw: 'Mathematics' },
+          'D4': { raw: 'TEA BREAK', bgColor: '#fef08a', bold: true },
+          'E4': { raw: 'Physics Theory' },
+          'F4': { raw: 'LUNCH BREAK', bgColor: '#fed7aa', bold: true },
+          'G4': { raw: 'Computer Lab (Batch B)', bgColor: '#bae6fd' },
+          'H4': { raw: 'Computer Lab (Batch B)', bgColor: '#bae6fd' }
+        };
+      } else if (presetName === 'blank') {
+        this.rows = Math.max(this.rows, 18);
+        this.cols = Math.max(this.cols, 10);
+        this.data = {};
       }
+
       this.recalculateAll();
     }
 
     getCellValue(ref) {
       ref = ref.toUpperCase().replace(/\$/g, '');
       const cell = this.data[ref];
-      if (!cell) return 0;
-      const num = parseFloat(cell.computed);
-      return isNaN(num) ? cell.computed : num;
+      if (!cell || cell.raw === '' || cell.raw === undefined) return '';
+      const comp = cell.computed !== undefined ? cell.computed : cell.raw;
+      const num = parseFloat(comp);
+      return !isNaN(num) && String(num) === String(comp).trim() ? num : comp;
     }
 
     getRawValue(ref) {
@@ -150,255 +353,886 @@
 
     setCellValue(ref, val) {
       ref = ref.toUpperCase().replace(/\$/g, '');
-      this.data[ref] = { raw: String(val), computed: '' };
+      if (!this.data[ref]) {
+        this.data[ref] = { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'left' };
+      }
+      this.data[ref].raw = String(val);
       this.recalculateAll();
       this.updateDOM();
     }
 
+    setCellFormat(ref, prop, value) {
+      ref = ref.toUpperCase().replace(/\$/g, '');
+      if (!this.data[ref]) {
+        this.data[ref] = { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'left' };
+      }
+      this.data[ref][prop] = value;
+      this.updateDOM();
+    }
+
     expandRange(rangeStr) {
-      const parts = rangeStr.toUpperCase().replace(/\$/g, '').split(':');
+      rangeStr = rangeStr.toUpperCase().replace(/\$/g, '').trim();
+      const parts = rangeStr.split(':');
       if (parts.length === 1) return [parts[0]];
-      const start = parts[0];
-      const end = parts[1];
-      const startCol = start.charCodeAt(0);
-      const startRow = parseInt(start.substring(1), 10);
-      const endCol = end.charCodeAt(0);
-      const endRow = parseInt(end.substring(1), 10);
+      const start = parts[0].trim();
+      const end = parts[1].trim();
+
+      const startColMatch = start.match(/^[A-Z]+/);
+      const startRowMatch = start.match(/\d+$/);
+      const endColMatch = end.match(/^[A-Z]+/);
+      const endRowMatch = end.match(/\d+$/);
+
+      if (!startColMatch || !startRowMatch || !endColMatch || !endRowMatch) {
+        return [start];
+      }
+
+      const minCol = Math.min(this.colNameToIndex(startColMatch[0]), this.colNameToIndex(endColMatch[0]));
+      const maxCol = Math.max(this.colNameToIndex(startColMatch[0]), this.colNameToIndex(endColMatch[0]));
+      const minRow = Math.min(parseInt(startRowMatch[0], 10), parseInt(endRowMatch[0], 10));
+      const maxRow = Math.max(parseInt(startRowMatch[0], 10), parseInt(endRowMatch[0], 10));
 
       const cells = [];
-      const minCol = Math.min(startCol, endCol);
-      const maxCol = Math.max(startCol, endCol);
-      const minRow = Math.min(startRow, endRow);
-      const maxRow = Math.max(startRow, endRow);
-
       for (let r = minRow; r <= maxRow; r++) {
         for (let c = minCol; c <= maxCol; c++) {
-          cells.push(`${String.fromCharCode(c)}${r}`);
+          cells.push(`${this.indexToColName(c)}${r}`);
         }
       }
       return cells;
     }
 
-    evaluateFormula(formula) {
-      if (!formula.startsWith('=')) return formula;
-      const clean = formula.substring(1).trim();
+    // --- Robust Recursive Formula Evaluator ---
+    splitTopLevel(str, separator = ',') {
+      const args = [];
+      let current = '';
+      let depth = 0;
+      let inQuote = false;
+      let quoteChar = '';
 
+      for (let i = 0; i < str.length; i++) {
+        const ch = str[i];
+        if ((ch === '"' || ch === "'") && !inQuote) {
+          inQuote = true;
+          quoteChar = ch;
+          current += ch;
+        } else if (ch === quoteChar && inQuote) {
+          inQuote = false;
+          quoteChar = '';
+          current += ch;
+        } else if (!inQuote && (ch === '(' || ch === '[' || ch === '{')) {
+          depth++;
+          current += ch;
+        } else if (!inQuote && (ch === ')' || ch === ']' || ch === '}')) {
+          depth--;
+          current += ch;
+        } else if (!inQuote && depth === 0 && str.substr(i, separator.length) === separator) {
+          args.push(current.trim());
+          current = '';
+          i += separator.length - 1;
+        } else {
+          current += ch;
+        }
+      }
+      if (current.trim().length > 0 || args.length > 0) {
+        args.push(current.trim());
+      }
+      return args;
+    }
+
+    getFunctionCall(str) {
+      str = str.trim();
+      const match = str.match(/^([A-Za-z0-9_.]+)\s*\(/);
+      if (!match) return null;
+
+      const fnName = match[1].toUpperCase();
+      const startIdx = match[0].length;
+      let depth = 1;
+      let inQuote = false;
+      let quoteChar = '';
+
+      for (let i = startIdx; i < str.length; i++) {
+        const ch = str[i];
+        if ((ch === '"' || ch === "'") && !inQuote) {
+          inQuote = true;
+          quoteChar = ch;
+        } else if (ch === quoteChar && inQuote) {
+          inQuote = false;
+          quoteChar = '';
+        } else if (!inQuote && ch === '(') {
+          depth++;
+        } else if (!inQuote && ch === ')') {
+          depth--;
+          if (depth === 0) {
+            if (i === str.length - 1) {
+              return {
+                name: fnName,
+                argsStr: str.substring(startIdx, i)
+              };
+            }
+            return null;
+          }
+        }
+      }
+      return null;
+    }
+
+    resolveRangeOrValues(rawArg) {
+      rawArg = rawArg.trim();
+      if (/^\$?[A-Z]+\$?[0-9]+:\$?[A-Z]+\$?[0-9]+$/i.test(rawArg)) {
+        const cells = this.expandRange(rawArg);
+        return cells.map(c => this.getCellValue(c));
+      }
+      const val = this.evaluateExpr(rawArg);
+      return [val];
+    }
+
+    evaluateExpr(expr) {
+      if (typeof expr !== 'string') return expr;
+      expr = expr.trim();
+      if (expr.startsWith('=')) expr = expr.substring(1).trim();
+      if (!expr) return '';
+
+      // Strip wrapping outer parentheses if balanced: e.g. (A1 + B1)
+      if (expr.startsWith('(') && expr.endsWith(')')) {
+        let depth = 0, canStrip = true;
+        for (let i = 0; i < expr.length - 1; i++) {
+          if (expr[i] === '(') depth++;
+          else if (expr[i] === ')') depth--;
+          if (depth === 0) { canStrip = false; break; }
+        }
+        if (canStrip) return this.evaluateExpr(expr.substring(1, expr.length - 1));
+      }
+
+      // 1. Top-Level Function Call
+      const fn = this.getFunctionCall(expr);
+      if (fn) {
+        const rawArgs = this.splitTopLevel(fn.argsStr, ',');
+        return this.executeFunction(fn.name, rawArgs);
+      }
+
+      // 2. Comparison operators: =, <>, !=, <=, >=, <, >
+      const compOps = ['<=', '>=', '<>', '!=', '==', '=', '<', '>'];
+      for (const op of compOps) {
+        const parts = this.splitTopLevel(expr, op);
+        if (parts.length === 2) {
+          const left = this.evaluateExpr(parts[0]);
+          const right = this.evaluateExpr(parts[1]);
+          const lNum = parseFloat(left);
+          const rNum = parseFloat(right);
+          const useNum = !isNaN(lNum) && !isNaN(rNum) && typeof left !== 'string' && typeof right !== 'string';
+          const a = useNum ? lNum : left;
+          const b = useNum ? rNum : right;
+
+          switch (op) {
+            case '=':
+            case '==': return a == b;
+            case '<>':
+            case '!=': return a != b;
+            case '<': return a < b;
+            case '<=': return a <= b;
+            case '>': return a > b;
+            case '>=': return a >= b;
+          }
+        }
+      }
+
+      // 3. String Concatenation operator: &
+      const concatParts = this.splitTopLevel(expr, '&');
+      if (concatParts.length > 1) {
+        return concatParts.map(p => {
+          const val = this.evaluateExpr(p);
+          return val === null || val === undefined ? '' : String(val);
+        }).join('');
+      }
+
+      // 4. Additive operators: + and -
+      let cur = '';
+      let depth = 0;
+      let inQ = false;
+      let qCh = '';
+      const tokens = [];
+
+      for (let i = 0; i < expr.length; i++) {
+        const ch = expr[i];
+        if ((ch === '"' || ch === "'") && !inQ) { inQ = true; qCh = ch; cur += ch; }
+        else if (ch === qCh && inQ) { inQ = false; cur += ch; }
+        else if (!inQ && ch === '(') { depth++; cur += ch; }
+        else if (!inQ && ch === ')') { depth--; cur += ch; }
+        else if (!inQ && depth === 0 && (ch === '+' || ch === '-') && i > 0 && !['+', '-', '*', '/', '^', '(', ','].includes(expr[i - 1].trim())) {
+          tokens.push(cur.trim());
+          tokens.push(ch);
+          cur = '';
+        } else {
+          cur += ch;
+        }
+      }
+      if (tokens.length > 0) {
+        tokens.push(cur.trim());
+        let res = parseFloat(this.evaluateExpr(tokens[0])) || 0;
+        for (let i = 1; i < tokens.length; i += 2) {
+          const op = tokens[i];
+          const nextVal = parseFloat(this.evaluateExpr(tokens[i + 1])) || 0;
+          if (op === '+') res += nextVal;
+          else if (op === '-') res -= nextVal;
+        }
+        return Math.round(res * 100000) / 100000;
+      }
+
+      // 5. Multiplicative operators: * and /
+      cur = '';
+      depth = 0;
+      inQ = false;
+      qCh = '';
+      const mulTokens = [];
+
+      for (let i = 0; i < expr.length; i++) {
+        const ch = expr[i];
+        if ((ch === '"' || ch === "'") && !inQ) { inQ = true; qCh = ch; cur += ch; }
+        else if (ch === qCh && inQ) { inQ = false; cur += ch; }
+        else if (!inQ && ch === '(') { depth++; cur += ch; }
+        else if (!inQ && ch === ')') { depth--; cur += ch; }
+        else if (!inQ && depth === 0 && (ch === '*' || ch === '/')) {
+          mulTokens.push(cur.trim());
+          mulTokens.push(ch);
+          cur = '';
+        } else {
+          cur += ch;
+        }
+      }
+      if (mulTokens.length > 0) {
+        mulTokens.push(cur.trim());
+        let res = parseFloat(this.evaluateExpr(mulTokens[0])) || 0;
+        for (let i = 1; i < mulTokens.length; i += 2) {
+          const op = mulTokens[i];
+          const nextVal = parseFloat(this.evaluateExpr(mulTokens[i + 1])) || 0;
+          if (op === '*') res *= nextVal;
+          else if (op === '/') {
+            if (nextVal === 0) return '#DIV/0!';
+            res /= nextVal;
+          }
+        }
+        return Math.round(res * 100000) / 100000;
+      }
+
+      // 6. Percentage postfix e.g. 30% -> 0.3
+      if (expr.endsWith('%')) {
+        const base = this.evaluateExpr(expr.slice(0, -1));
+        return (parseFloat(base) || 0) / 100;
+      }
+
+      // 7. Literals & References
+      if ((expr.startsWith('"') && expr.endsWith('"')) || (expr.startsWith("'") && expr.endsWith("'"))) {
+        return expr.substring(1, expr.length - 1);
+      }
+      if (expr.toUpperCase() === 'TRUE') return true;
+      if (expr.toUpperCase() === 'FALSE') return false;
+      if (/^-?\d+(\.\d+)?$/.test(expr)) {
+        return parseFloat(expr);
+      }
+      if (/^\$?[A-Z]+\$?[0-9]+$/i.test(expr)) {
+        return this.getCellValue(expr);
+      }
+
+      return expr;
+    }
+
+    executeFunction(name, rawArgs) {
       try {
-        // --- 1. SUM(range) ---
-        const sumMatch = clean.match(/^SUM\((.+)\)$/i);
-        if (sumMatch) {
-          const cells = this.expandRange(sumMatch[1]);
-          let sum = 0;
-          for (const c of cells) {
-            const val = parseFloat(this.getCellValue(c));
-            if (!isNaN(val)) sum += val;
+        switch (name) {
+          // --- TEXT FUNCTIONS ---
+          case 'TEXTJOIN': {
+            if (rawArgs.length < 3) return '#VALUE!';
+            const delim = String(this.evaluateExpr(rawArgs[0]));
+            const ignoreEmpty = Boolean(this.evaluateExpr(rawArgs[1]));
+            let items = [];
+            for (let i = 2; i < rawArgs.length; i++) {
+              items.push(...this.resolveRangeOrValues(rawArgs[i]));
+            }
+            if (ignoreEmpty) {
+              items = items.filter(x => x !== '' && x !== null && x !== undefined);
+            }
+            return items.join(delim);
           }
-          return Math.round(sum * 100) / 100;
-        }
-
-        // --- 2. AVERAGE(range) ---
-        const avgMatch = clean.match(/^AVERAGE\((.+)\)$/i);
-        if (avgMatch) {
-          const cells = this.expandRange(avgMatch[1]);
-          let sum = 0, count = 0;
-          for (const c of cells) {
-            const val = parseFloat(this.getCellValue(c));
-            if (!isNaN(val)) { sum += val; count++; }
+          case 'CONCAT':
+          case 'CONCATENATE': {
+            let items = [];
+            for (const arg of rawArgs) {
+              items.push(...this.resolveRangeOrValues(arg));
+            }
+            return items.map(x => (x === null || x === undefined ? '' : String(x))).join('');
           }
-          return count > 0 ? Math.round((sum / count) * 100) / 100 : 0;
-        }
+          case 'LEFT': {
+            const str = String(this.evaluateExpr(rawArgs[0]));
+            const n = rawArgs[1] !== undefined ? parseInt(this.evaluateExpr(rawArgs[1]), 10) : 1;
+            return str.substring(0, n);
+          }
+          case 'RIGHT': {
+            const str = String(this.evaluateExpr(rawArgs[0]));
+            const n = rawArgs[1] !== undefined ? parseInt(this.evaluateExpr(rawArgs[1]), 10) : 1;
+            return str.substring(Math.max(0, str.length - n));
+          }
+          case 'MID': {
+            const str = String(this.evaluateExpr(rawArgs[0]));
+            const start = parseInt(this.evaluateExpr(rawArgs[1]), 10) - 1;
+            const len = parseInt(this.evaluateExpr(rawArgs[2]), 10);
+            return str.substring(start, start + len);
+          }
+          case 'LEN': {
+            return String(this.evaluateExpr(rawArgs[0])).length;
+          }
+          case 'TRIM': {
+            return String(this.evaluateExpr(rawArgs[0])).replace(/\s+/g, ' ').trim();
+          }
+          case 'UPPER': {
+            return String(this.evaluateExpr(rawArgs[0])).toUpperCase();
+          }
+          case 'LOWER': {
+            return String(this.evaluateExpr(rawArgs[0])).toLowerCase();
+          }
+          case 'PROPER': {
+            return String(this.evaluateExpr(rawArgs[0])).toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+          }
+          case 'REPT': {
+            const str = String(this.evaluateExpr(rawArgs[0]));
+            const times = parseInt(this.evaluateExpr(rawArgs[1]), 10) || 0;
+            return str.repeat(Math.max(0, times));
+          }
+          case 'FIND': {
+            const f = String(this.evaluateExpr(rawArgs[0]));
+            const s = String(this.evaluateExpr(rawArgs[1]));
+            const start = rawArgs[2] ? parseInt(this.evaluateExpr(rawArgs[2]), 10) - 1 : 0;
+            const idx = s.indexOf(f, start);
+            return idx !== -1 ? idx + 1 : '#VALUE!';
+          }
+          case 'SEARCH': {
+            const f = String(this.evaluateExpr(rawArgs[0])).toLowerCase();
+            const s = String(this.evaluateExpr(rawArgs[1])).toLowerCase();
+            const start = rawArgs[2] ? parseInt(this.evaluateExpr(rawArgs[2]), 10) - 1 : 0;
+            const idx = s.indexOf(f, start);
+            return idx !== -1 ? idx + 1 : '#VALUE!';
+          }
+          case 'SUBSTITUTE': {
+            let str = String(this.evaluateExpr(rawArgs[0]));
+            const oldT = String(this.evaluateExpr(rawArgs[1]));
+            const newT = String(this.evaluateExpr(rawArgs[2]));
+            return str.split(oldT).join(newT);
+          }
 
-        // --- 3. COUNT(range) ---
-        const countMatch = clean.match(/^COUNT\((.+)\)$/i);
-        if (countMatch) {
-          const cells = this.expandRange(countMatch[1]);
-          return cells.filter(c => typeof this.getCellValue(c) === 'number').length;
-        }
+          // --- MATH & STATISTICAL FUNCTIONS ---
+          case 'SUM': {
+            let sum = 0;
+            for (const arg of rawArgs) {
+              for (const v of this.resolveRangeOrValues(arg)) {
+                const n = parseFloat(v);
+                if (!isNaN(n)) sum += n;
+              }
+            }
+            return Math.round(sum * 100000) / 100000;
+          }
+          case 'AVERAGE': {
+            let sum = 0, count = 0;
+            for (const arg of rawArgs) {
+              for (const v of this.resolveRangeOrValues(arg)) {
+                const n = parseFloat(v);
+                if (!isNaN(n)) { sum += n; count++; }
+              }
+            }
+            return count > 0 ? Math.round((sum / count) * 100) / 100 : 0;
+          }
+          case 'COUNT': {
+            let count = 0;
+            for (const arg of rawArgs) {
+              for (const v of this.resolveRangeOrValues(arg)) {
+                if (typeof v === 'number' || (v !== '' && !isNaN(parseFloat(v)) && String(parseFloat(v)) === String(v).trim())) {
+                  count++;
+                }
+              }
+            }
+            return count;
+          }
+          case 'COUNTA': {
+            let count = 0;
+            for (const arg of rawArgs) {
+              for (const v of this.resolveRangeOrValues(arg)) {
+                if (v !== '' && v !== null && v !== undefined) count++;
+              }
+            }
+            return count;
+          }
+          case 'COUNTBLANK': {
+            let count = 0;
+            for (const arg of rawArgs) {
+              for (const v of this.resolveRangeOrValues(arg)) {
+                if (v === '' || v === null || v === undefined) count++;
+              }
+            }
+            return count;
+          }
+          case 'COUNTIF': {
+            const rangeVals = this.resolveRangeOrValues(rawArgs[0]);
+            let crit = this.evaluateExpr(rawArgs[1]);
+            let count = 0;
+            const critStr = String(crit).trim();
+            const matchOp = critStr.match(/^([><]=?|<>|=)?\s*(.*)$/);
+            const op = (matchOp && matchOp[1]) || '=';
+            const target = (matchOp && matchOp[2]) !== undefined ? matchOp[2] : critStr;
+            const targetNum = parseFloat(target);
 
-        // --- 4. MAX(range) / MIN(range) ---
-        const maxMatch = clean.match(/^MAX\((.+)\)$/i);
-        if (maxMatch) {
-          const cells = this.expandRange(maxMatch[1]);
-          const nums = cells.map(c => parseFloat(this.getCellValue(c))).filter(n => !isNaN(n));
-          return nums.length ? Math.max(...nums) : 0;
-        }
+            for (const v of rangeVals) {
+              const vNum = parseFloat(v);
+              if (!isNaN(targetNum) && !isNaN(vNum)) {
+                if (op === '>' && vNum > targetNum) count++;
+                else if (op === '>=' && vNum >= targetNum) count++;
+                else if (op === '<' && vNum < targetNum) count++;
+                else if (op === '<=' && vNum <= targetNum) count++;
+                else if ((op === '=' || op === '==') && vNum === targetNum) count++;
+                else if (op === '<>' && vNum !== targetNum) count++;
+              } else {
+                const s1 = String(v).toLowerCase();
+                const s2 = target.toLowerCase();
+                if (op === '<>' ? s1 !== s2 : s1 === s2) count++;
+              }
+            }
+            return count;
+          }
+          case 'SUMIF': {
+            const rangeVals = this.resolveRangeOrValues(rawArgs[0]);
+            const crit = this.evaluateExpr(rawArgs[1]);
+            const sumVals = rawArgs[2] ? this.resolveRangeOrValues(rawArgs[2]) : rangeVals;
+            let sum = 0;
+            const critStr = String(crit).trim();
+            const matchOp = critStr.match(/^([><]=?|<>|=)?\s*(.*)$/);
+            const op = (matchOp && matchOp[1]) || '=';
+            const target = (matchOp && matchOp[2]) !== undefined ? matchOp[2] : critStr;
+            const targetNum = parseFloat(target);
 
-        const minMatch = clean.match(/^MIN\((.+)\)$/i);
-        if (minMatch) {
-          const cells = this.expandRange(minMatch[1]);
-          const nums = cells.map(c => parseFloat(this.getCellValue(c))).filter(n => !isNaN(n));
-          return nums.length ? Math.min(...nums) : 0;
-        }
+            for (let i = 0; i < rangeVals.length; i++) {
+              const v = rangeVals[i];
+              const vNum = parseFloat(v);
+              let match = false;
+              if (!isNaN(targetNum) && !isNaN(vNum)) {
+                if (op === '>' && vNum > targetNum) match = true;
+                else if (op === '>=' && vNum >= targetNum) match = true;
+                else if (op === '<' && vNum < targetNum) match = true;
+                else if (op === '<=' && vNum <= targetNum) match = true;
+                else if ((op === '=' || op === '==') && vNum === targetNum) match = true;
+                else if (op === '<>' && vNum !== targetNum) match = true;
+              } else {
+                const s1 = String(v).toLowerCase();
+                const s2 = target.toLowerCase();
+                match = (op === '<>' ? s1 !== s2 : s1 === s2);
+              }
+              if (match && sumVals[i] !== undefined) {
+                const sNum = parseFloat(sumVals[i]);
+                if (!isNaN(sNum)) sum += sNum;
+              }
+            }
+            return sum;
+          }
+          case 'MIN': {
+            let min = Infinity;
+            for (const arg of rawArgs) {
+              for (const v of this.resolveRangeOrValues(arg)) {
+                const n = parseFloat(v);
+                if (!isNaN(n) && n < min) min = n;
+              }
+            }
+            return min === Infinity ? 0 : min;
+          }
+          case 'MAX': {
+            let max = -Infinity;
+            for (const arg of rawArgs) {
+              for (const v of this.resolveRangeOrValues(arg)) {
+                const n = parseFloat(v);
+                if (!isNaN(n) && n > max) max = n;
+              }
+            }
+            return max === -Infinity ? 0 : max;
+          }
+          case 'LARGE': {
+            const vals = this.resolveRangeOrValues(rawArgs[0]).map(v => parseFloat(v)).filter(n => !isNaN(n));
+            vals.sort((a, b) => b - a);
+            const k = parseInt(this.evaluateExpr(rawArgs[1]), 10) - 1;
+            return vals[k] !== undefined ? vals[k] : '#NUM!';
+          }
+          case 'SMALL': {
+            const vals = this.resolveRangeOrValues(rawArgs[0]).map(v => parseFloat(v)).filter(n => !isNaN(n));
+            vals.sort((a, b) => a - b);
+            const k = parseInt(this.evaluateExpr(rawArgs[1]), 10) - 1;
+            return vals[k] !== undefined ? vals[k] : '#NUM!';
+          }
+          case 'ROUND': {
+            const num = parseFloat(this.evaluateExpr(rawArgs[0]));
+            const digits = rawArgs[1] !== undefined ? parseInt(this.evaluateExpr(rawArgs[1]), 10) : 0;
+            if (isNaN(num)) return 0;
+            const factor = Math.pow(10, digits);
+            return Math.round(num * factor) / factor;
+          }
+          case 'ROUNDUP': {
+            const num = parseFloat(this.evaluateExpr(rawArgs[0]));
+            const digits = rawArgs[1] !== undefined ? parseInt(this.evaluateExpr(rawArgs[1]), 10) : 0;
+            const factor = Math.pow(10, digits);
+            return Math.ceil(num * factor) / factor;
+          }
+          case 'ROUNDDOWN': {
+            const num = parseFloat(this.evaluateExpr(rawArgs[0]));
+            const digits = rawArgs[1] !== undefined ? parseInt(this.evaluateExpr(rawArgs[1]), 10) : 0;
+            const factor = Math.pow(10, digits);
+            return Math.floor(num * factor) / factor;
+          }
+          case 'INT': {
+            return Math.floor(parseFloat(this.evaluateExpr(rawArgs[0])) || 0);
+          }
+          case 'ABS': {
+            return Math.abs(parseFloat(this.evaluateExpr(rawArgs[0])) || 0);
+          }
+          case 'MOD': {
+            const n = parseFloat(this.evaluateExpr(rawArgs[0])) || 0;
+            const d = parseFloat(this.evaluateExpr(rawArgs[1])) || 1;
+            return n % d;
+          }
+          case 'POWER': {
+            const n = parseFloat(this.evaluateExpr(rawArgs[0])) || 0;
+            const p = parseFloat(this.evaluateExpr(rawArgs[1])) || 0;
+            return Math.pow(n, p);
+          }
+          case 'SQRT': {
+            const n = parseFloat(this.evaluateExpr(rawArgs[0])) || 0;
+            return n >= 0 ? Math.sqrt(n) : '#NUM!';
+          }
+          case 'PRODUCT': {
+            let prod = 1;
+            for (const arg of rawArgs) {
+              for (const v of this.resolveRangeOrValues(arg)) {
+                const n = parseFloat(v);
+                if (!isNaN(n)) prod *= n;
+              }
+            }
+            return prod;
+          }
 
-        // --- 5. IF(cond, trueVal, falseVal) ---
-        const ifMatch = clean.match(/^IF\(([^,]+),([^,]+),([^)]+)\)$/i);
-        if (ifMatch) {
-          const cond = ifMatch[1].trim();
-          const trueVal = ifMatch[2].trim().replace(/^"|"$/g, '');
-          const falseVal = ifMatch[3].trim().replace(/^"|"$/g, '');
-          const condResult = this.evaluateCondition(cond);
-          return condResult ? trueVal : falseVal;
-        }
-
-        // --- 6. TEXT Functions: LEFT, RIGHT, MID, LEN, TRIM, CONCAT, TEXTJOIN ---
-        const leftMatch = clean.match(/^LEFT\(([^,]+),(\d+)\)$/i);
-        if (leftMatch) {
-          const str = String(this.resolveOperand(leftMatch[1]));
-          return str.substring(0, parseInt(leftMatch[2], 10));
-        }
-
-        const rightMatch = clean.match(/^RIGHT\(([^,]+),(\d+)\)$/i);
-        if (rightMatch) {
-          const str = String(this.resolveOperand(rightMatch[1]));
-          const num = parseInt(rightMatch[2], 10);
-          return str.substring(Math.max(0, str.length - num));
-        }
-
-        const midMatch = clean.match(/^MID\(([^,]+),(\d+),(\d+)\)$/i);
-        if (midMatch) {
-          const str = String(this.resolveOperand(midMatch[1]));
-          const start = parseInt(midMatch[2], 10) - 1;
-          const length = parseInt(midMatch[3], 10);
-          return str.substring(start, start + length);
-        }
-
-        const lenMatch = clean.match(/^LEN\((.+)\)$/i);
-        if (lenMatch) {
-          return String(this.resolveOperand(lenMatch[1])).length;
-        }
-
-        const trimMatch = clean.match(/^TRIM\((.+)\)$/i);
-        if (trimMatch) {
-          return String(this.resolveOperand(trimMatch[1])).trim();
-        }
-
-        // --- 7. VLOOKUP(val, range, col_index, [exact]) ---
-        const vlookupMatch = clean.match(/^VLOOKUP\(([^,]+),\s*([A-Z0-9]+:[A-Z0-9]+),\s*(\d+)(?:,\s*([^)]+))?\)$/i);
-        if (vlookupMatch) {
-          const searchVal = String(this.resolveOperand(vlookupMatch[1])).trim().toLowerCase();
-          const rangeCells = this.expandRange(vlookupMatch[2]);
-          const colIdx = parseInt(vlookupMatch[3], 10);
-
-          // Find start and end cols
-          const [startCell, endCell] = vlookupMatch[2].split(':');
-          const startColChar = startCell[0];
-          const targetColChar = String.fromCharCode(startColChar.charCodeAt(0) + colIdx - 1);
-
-          // Get unique rows in range
-          const rows = [...new Set(rangeCells.map(c => c.substring(1)))];
-          for (const r of rows) {
-            const firstCellVal = String(this.getCellValue(`${startColChar}${r}`)).trim().toLowerCase();
-            if (firstCellVal === searchVal) {
-              return this.getCellValue(`${targetColChar}${r}`);
+          // --- LOGICAL FUNCTIONS ---
+          case 'IF': {
+            const cond = this.evaluateExpr(rawArgs[0]);
+            const isTrue = cond === true || (typeof cond === 'number' && cond !== 0) || (typeof cond === 'string' && cond.toUpperCase() === 'TRUE');
+            if (isTrue) {
+              return rawArgs[1] !== undefined ? this.evaluateExpr(rawArgs[1]) : true;
+            } else {
+              return rawArgs[2] !== undefined ? this.evaluateExpr(rawArgs[2]) : false;
             }
           }
-          return '#N/A';
-        }
-
-        // --- 8. XLOOKUP(searchVal, lookupArray, returnArray) ---
-        const xlookupMatch = clean.match(/^XLOOKUP\(([^,]+),\s*([A-Z0-9]+:[A-Z0-9]+),\s*([A-Z0-9]+:[A-Z0-9]+)\)$/i);
-        if (xlookupMatch) {
-          const searchVal = String(this.resolveOperand(xlookupMatch[1])).trim().toLowerCase();
-          const lookupCells = this.expandRange(xlookupMatch[2]);
-          const returnCells = this.expandRange(xlookupMatch[3]);
-
-          for (let i = 0; i < lookupCells.length; i++) {
-            if (String(this.getCellValue(lookupCells[i])).trim().toLowerCase() === searchVal) {
-              return this.getCellValue(returnCells[i]);
+          case 'AND': {
+            for (const arg of rawArgs) {
+              const val = this.evaluateExpr(arg);
+              if (!val || val === 'FALSE' || val === 0) return false;
+            }
+            return true;
+          }
+          case 'OR': {
+            for (const arg of rawArgs) {
+              const val = this.evaluateExpr(arg);
+              if (val === true || val === 'TRUE' || (typeof val === 'number' && val !== 0)) return true;
+            }
+            return false;
+          }
+          case 'NOT': {
+            const val = this.evaluateExpr(rawArgs[0]);
+            return !val;
+          }
+          case 'IFERROR': {
+            try {
+              const val = this.evaluateExpr(rawArgs[0]);
+              if (typeof val === 'string' && val.startsWith('#')) {
+                return this.evaluateExpr(rawArgs[1]);
+              }
+              return val;
+            } catch (e) {
+              return this.evaluateExpr(rawArgs[1]);
             }
           }
-          return '#N/A';
-        }
+          case 'TRUE': return true;
+          case 'FALSE': return false;
 
-        // --- 9. INDEX(array, row, [col]) & MATCH(val, array, [type]) ---
-        const indexMatch = clean.match(/^INDEX\(([^,]+),\s*(\d+)(?:,\s*(\d+))?\)$/i);
-        if (indexMatch) {
-          const cells = this.expandRange(indexMatch[1]);
-          const row = parseInt(indexMatch[2], 10) - 1;
-          return cells[row] ? this.getCellValue(cells[row]) : '#REF!';
-        }
+          // --- LOOKUP & REFERENCE FUNCTIONS ---
+          case 'VLOOKUP': {
+            const searchVal = String(this.evaluateExpr(rawArgs[0])).trim().toLowerCase();
+            const rangeStr = rawArgs[1].trim();
+            const colIdx = parseInt(this.evaluateExpr(rawArgs[2]), 10);
+            const cells = this.expandRange(rangeStr);
 
-        const matchMatch = clean.match(/^MATCH\(([^,]+),\s*([A-Z0-9]+:[A-Z0-9]+)(?:,\s*(\d+))?\)$/i);
-        if (matchMatch) {
-          const searchVal = String(this.resolveOperand(matchMatch[1])).trim().toLowerCase();
-          const cells = this.expandRange(matchMatch[2]);
-          for (let i = 0; i < cells.length; i++) {
-            if (String(this.getCellValue(cells[i])).trim().toLowerCase() === searchVal) {
-              return i + 1;
+            const [startCell] = rangeStr.replace(/\$/g, '').split(':');
+            const startColMatch = startCell.match(/^[A-Z]+/);
+            if (!startColMatch) return '#REF!';
+            const startColChar = startColMatch[0];
+            const targetColIndex = this.colNameToIndex(startColChar) + colIdx - 1;
+            const targetColChar = this.indexToColName(targetColIndex);
+            const rows = [...new Set(cells.map(c => c.match(/\d+$/)[0]))];
+
+            for (const r of rows) {
+              const firstCellVal = String(this.getCellValue(`${startColChar}${r}`)).trim().toLowerCase();
+              if (firstCellVal === searchVal) {
+                return this.getCellValue(`${targetColChar}${r}`);
+              }
             }
+            return '#N/A';
           }
-          return '#N/A';
+          case 'HLOOKUP': {
+            const searchVal = String(this.evaluateExpr(rawArgs[0])).trim().toLowerCase();
+            const rangeStr = rawArgs[1].trim();
+            const rowIdx = parseInt(this.evaluateExpr(rawArgs[2]), 10);
+            const cells = this.expandRange(rangeStr);
+
+            const [startCell] = rangeStr.replace(/\$/g, '').split(':');
+            const startRow = parseInt(startCell.match(/\d+$/)[0], 10);
+            const targetRow = startRow + rowIdx - 1;
+            const cols = [...new Set(cells.map(c => c.match(/^[A-Z]+/)[0]))];
+
+            for (const col of cols) {
+              const topCellVal = String(this.getCellValue(`${col}${startRow}`)).trim().toLowerCase();
+              if (topCellVal === searchVal) {
+                return this.getCellValue(`${col}${targetRow}`);
+              }
+            }
+            return '#N/A';
+          }
+          case 'XLOOKUP': {
+            const searchVal = String(this.evaluateExpr(rawArgs[0])).trim().toLowerCase();
+            const lookupCells = this.expandRange(rawArgs[1]);
+            const returnCells = this.expandRange(rawArgs[2]);
+            const ifNotFound = rawArgs[3] !== undefined ? this.evaluateExpr(rawArgs[3]) : '#N/A';
+
+            for (let i = 0; i < lookupCells.length; i++) {
+              if (String(this.getCellValue(lookupCells[i])).trim().toLowerCase() === searchVal) {
+                return this.getCellValue(returnCells[i]);
+              }
+            }
+            return ifNotFound;
+          }
+          case 'MATCH': {
+            const searchVal = String(this.evaluateExpr(rawArgs[0])).trim().toLowerCase();
+            const cells = this.expandRange(rawArgs[1]);
+            for (let i = 0; i < cells.length; i++) {
+              if (String(this.getCellValue(cells[i])).trim().toLowerCase() === searchVal) {
+                return i + 1;
+              }
+            }
+            return '#N/A';
+          }
+          case 'INDEX': {
+            const cells = this.expandRange(rawArgs[0]);
+            const rowIdx = parseInt(this.evaluateExpr(rawArgs[1]), 10) - 1;
+            return cells[rowIdx] ? this.getCellValue(cells[rowIdx]) : '#REF!';
+          }
+
+          // --- DATE & TIME FUNCTIONS ---
+          case 'TODAY': {
+            const d = new Date();
+            return d.toISOString().split('T')[0];
+          }
+          case 'NOW': {
+            const d = new Date();
+            return d.toLocaleString();
+          }
+          case 'YEAR': {
+            const val = String(this.evaluateExpr(rawArgs[0]));
+            const d = new Date(val);
+            return !isNaN(d.getFullYear()) ? d.getFullYear() : '#VALUE!';
+          }
+          case 'MONTH': {
+            const val = String(this.evaluateExpr(rawArgs[0]));
+            const d = new Date(val);
+            return !isNaN(d.getMonth()) ? d.getMonth() + 1 : '#VALUE!';
+          }
+          case 'DAY': {
+            const val = String(this.evaluateExpr(rawArgs[0]));
+            const d = new Date(val);
+            return !isNaN(d.getDate()) ? d.getDate() : '#VALUE!';
+          }
+
+          // --- INFORMATION FUNCTIONS ---
+          case 'ISBLANK': {
+            const v = this.evaluateExpr(rawArgs[0]);
+            return v === '' || v === null || v === undefined;
+          }
+          case 'ISNUMBER': {
+            const v = this.evaluateExpr(rawArgs[0]);
+            return typeof v === 'number' && !isNaN(v);
+          }
+          case 'ISTEXT': {
+            const v = this.evaluateExpr(rawArgs[0]);
+            return typeof v === 'string';
+          }
+
+          default:
+            return `#NAME? (${name})`;
         }
-
-        // --- 10. General Arithmetic Expressions: B2*0.3, B2+C2, etc. ---
-        let expr = clean.replace(/([A-Z][0-9]+)/gi, (m) => {
-          const v = this.getCellValue(m);
-          return typeof v === 'number' ? v : `"${v}"`;
-        });
-
-        // Basic safe evaluator for math operators +, -, *, /, %
-        if (/^[0-9+\-*/().\s%]+$/.test(expr)) {
-          // eslint-disable-next-line no-eval
-          const res = Function(`"use strict"; return (${expr});`)();
-          return typeof res === 'number' ? Math.round(res * 100) / 100 : res;
-        }
-
-        return formula;
       } catch (err) {
         return '#ERROR!';
       }
     }
 
-    resolveOperand(op) {
-      op = op.trim().replace(/^"|"$/g, '');
-      if (/^[A-Z][0-9]+$/i.test(op)) {
-        return this.getCellValue(op);
-      }
-      return op;
-    }
-
-    evaluateCondition(cond) {
-      const match = cond.match(/^(.+?)(>=|<=|==|=|!=|>|<)(.+)$/);
-      if (!match) return false;
-      const left = parseFloat(this.resolveOperand(match[1]));
-      const op = match[2] === '=' ? '==' : match[2];
-      const right = parseFloat(this.resolveOperand(match[3]));
-
-      switch (op) {
-        case '>=': return left >= right;
-        case '<=': return left <= right;
-        case '==': return left === right;
-        case '!=': return left !== right;
-        case '>': return left > right;
-        case '<': return left < right;
-        default: return false;
-      }
-    }
-
     recalculateAll() {
-      // 2-pass topological recalculation
+      // 3-pass topological calculation for dependent formulas
       for (let pass = 0; pass < 3; pass++) {
         for (const [ref, cell] of Object.entries(this.data)) {
-          if (cell.raw.startsWith('=')) {
-            cell.computed = this.evaluateFormula(cell.raw);
+          if (cell.raw && cell.raw.startsWith('=')) {
+            cell.computed = this.evaluateExpr(cell.raw);
           } else {
-            cell.computed = cell.raw;
+            cell.computed = cell.raw !== undefined ? cell.raw : '';
           }
         }
       }
     }
 
+    // --- Dynamic Grid Operations ---
+    addRow() {
+      this.rows++;
+      this.render();
+    }
+
+    removeRow() {
+      if (this.rows > 4) {
+        this.rows--;
+        this.render();
+      }
+    }
+
+    addColumn() {
+      if (this.cols < this.colNames.length) {
+        this.cols++;
+        this.render();
+      }
+    }
+
+    removeColumn() {
+      if (this.cols > 4) {
+        this.cols--;
+        this.render();
+      }
+    }
+
+    clearSheet() {
+      this.data = {};
+      this.recalculateAll();
+      this.updateDOM();
+    }
+
+    // --- UI Rendering ---
     render() {
       if (!this.container) return;
 
+      const activeCellData = this.data[this.activeCell] || {};
+      const activeRaw = activeCellData.raw || '';
+      const activeBg = activeCellData.bgColor || '#ffffff';
+      const activeText = activeCellData.textColor || '#1e293b';
+
       this.container.innerHTML = `
         <div class="spreadsheet-container">
-          <div class="spreadsheet-formula-bar">
-            <span class="formula-label-fx">fx</span>
-            <span class="formula-cell-ref" id="active_cell_badge">${this.activeCell}</span>
-            <input type="text" class="formula-input-field" id="formula_input_field" value="${this.getRawValue(this.activeCell)}" placeholder="Enter value or formula like =SUM(B2:C2) or =IF(...)">
+          <!-- Excel-Style Ribbon Toolbar -->
+          <div class="spreadsheet-ribbon-toolbar">
+            <!-- Grid Dimension Operations -->
+            <div class="toolbar-btn-group">
+              <span class="toolbar-group-label"><i class="fa-solid fa-table-cells"></i> Grid</span>
+              <button type="button" class="spr-tool-btn" id="spr_btn_add_row" title="Add Row below">
+                <i class="fa-solid fa-plus"></i> Row
+              </button>
+              <button type="button" class="spr-tool-btn" id="spr_btn_add_col" title="Add Column to the right">
+                <i class="fa-solid fa-plus"></i> Col
+              </button>
+              <button type="button" class="spr-tool-btn" id="spr_btn_del_row" title="Remove last Row">
+                <i class="fa-solid fa-minus"></i> Row
+              </button>
+              <button type="button" class="spr-tool-btn" id="spr_btn_del_col" title="Remove last Column">
+                <i class="fa-solid fa-minus"></i> Col
+              </button>
+            </div>
+
+            <div class="spr-toolbar-sep"></div>
+
+            <!-- Typography & Formatting -->
+            <div class="toolbar-btn-group">
+              <span class="toolbar-group-label"><i class="fa-solid fa-font"></i> Format</span>
+              <button type="button" class="spr-tool-btn ${activeCellData.bold ? 'active' : ''}" id="spr_btn_bold" title="Bold (Ctrl+B)">
+                <i class="fa-solid fa-bold"></i>
+              </button>
+              <button type="button" class="spr-tool-btn ${activeCellData.italic ? 'active' : ''}" id="spr_btn_italic" title="Italic (Ctrl+I)">
+                <i class="fa-solid fa-italic"></i>
+              </button>
+              <button type="button" class="spr-tool-btn ${activeCellData.align === 'left' ? 'active' : ''}" id="spr_btn_align_left" title="Align Left">
+                <i class="fa-solid fa-align-left"></i>
+              </button>
+              <button type="button" class="spr-tool-btn ${activeCellData.align === 'center' ? 'active' : ''}" id="spr_btn_align_center" title="Align Center">
+                <i class="fa-solid fa-align-center"></i>
+              </button>
+              <button type="button" class="spr-tool-btn ${activeCellData.align === 'right' ? 'active' : ''}" id="spr_btn_align_right" title="Align Right">
+                <i class="fa-solid fa-align-right"></i>
+              </button>
+            </div>
+
+            <div class="spr-toolbar-sep"></div>
+
+            <!-- Color Palette & Fill Options -->
+            <div class="toolbar-btn-group color-group">
+              <span class="toolbar-group-label"><i class="fa-solid fa-palette"></i> Colors</span>
+              
+              <!-- Fill Color Dropdown / Input -->
+              <div class="spr-color-trigger-wrap" title="Cell Fill Color (Background)">
+                <label for="spr_input_fill_color" class="spr-color-label">
+                  <i class="fa-solid fa-fill-drip"></i>
+                  <span class="spr-color-swatch-bar" id="spr_fill_indicator" style="background-color: ${activeBg};"></span>
+                </label>
+                <input type="color" id="spr_input_fill_color" class="spr-color-native-input" value="${activeBg.startsWith('#') ? activeBg : '#ffffff'}">
+              </div>
+
+              <!-- Quick Fill Swatches -->
+              <div class="spr-quick-swatches">
+                <span class="spr-swatch" data-fill="" title="No Fill / Default" style="background: transparent; border: 1px dashed #94a3b8;"></span>
+                <span class="spr-swatch" data-fill="#fef08a" title="Light Yellow (Tea Break)" style="background: #fef08a;"></span>
+                <span class="spr-swatch" data-fill="#fed7aa" title="Light Orange (Lunch Break)" style="background: #fed7aa;"></span>
+                <span class="spr-swatch" data-fill="#bbf7d0" title="Light Green (Pass / Lab A)" style="background: #bbf7d0;"></span>
+                <span class="spr-swatch" data-fill="#bae6fd" title="Light Blue (Lab B / Highlight)" style="background: #bae6fd;"></span>
+                <span class="spr-swatch" data-fill="#fecdd3" title="Light Pink (Alert / Fail)" style="background: #fecdd3;"></span>
+                <span class="spr-swatch" data-fill="#f1f5f9" title="Soft Slate (Header)" style="background: #f1f5f9;"></span>
+              </div>
+
+              <div class="spr-toolbar-subsep"></div>
+
+              <!-- Text Color Dropdown / Input -->
+              <div class="spr-color-trigger-wrap" title="Font Text Color">
+                <label for="spr_input_text_color" class="spr-color-label">
+                  <i class="fa-solid fa-font"></i>
+                  <span class="spr-color-swatch-bar" id="spr_text_indicator" style="background-color: ${activeText};"></span>
+                </label>
+                <input type="color" id="spr_input_text_color" class="spr-color-native-input" value="${activeText.startsWith('#') ? activeText : '#1e293b'}">
+              </div>
+
+              <!-- Quick Text Swatches -->
+              <div class="spr-quick-swatches">
+                <span class="spr-swatch" data-text="#1e293b" title="Dark Slate" style="background: #1e293b;"></span>
+                <span class="spr-swatch" data-text="#1e40af" title="Navy Blue" style="background: #1e40af;"></span>
+                <span class="spr-swatch" data-text="#15803d" title="Green" style="background: #15803d;"></span>
+                <span class="spr-swatch" data-text="#b91c1c" title="Red" style="background: #b91c1c;"></span>
+                <span class="spr-swatch" data-text="#7e22ce" title="Purple" style="background: #7e22ce;"></span>
+              </div>
+            </div>
+
+            <div class="spr-toolbar-sep"></div>
+
+            <!-- Clear Action -->
+            <div class="toolbar-btn-group">
+              <button type="button" class="spr-tool-btn spr-btn-danger" id="spr_btn_clear" title="Clear All Cells">
+                <i class="fa-solid fa-trash-can"></i> Clear
+              </button>
+            </div>
           </div>
 
+          <!-- Formula Bar -->
+          <div class="spreadsheet-formula-bar">
+            <span class="formula-label-fx" title="Formula Insertion Point">fx</span>
+            <span class="formula-cell-ref" id="active_cell_badge" title="Active Cell Coordinate">${this.activeCell}</span>
+            <input type="text" class="formula-input-field" id="formula_input_field" value="${activeRaw}" placeholder="Type value or formula: =TEXTJOIN(', ', TRUE, A2:A5), =SUM(B2:D2), =IF(F2>=50,'Pass','Fail'), =VLOOKUP(...)">
+          </div>
+
+          <!-- Table Wrapper Grid -->
           <div class="spreadsheet-table-wrapper">
             <table class="spreadsheet-table">
               <thead>
@@ -415,13 +1249,25 @@
                       <th class="row-header">${rowNum}</th>
                       ${this.colNames.slice(0, this.cols).map(c => {
                         const cellRef = `${c}${rowNum}`;
-                        const cell = this.data[cellRef] || { raw: '', computed: '' };
-                        const isFormula = cell.raw.startsWith('=');
+                        const cell = this.data[cellRef] || { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'left' };
+                        const isFormula = cell.raw && cell.raw.startsWith('=');
+                        const styleParts = [];
+                        if (cell.bgColor) styleParts.push(`background-color: ${cell.bgColor};`);
+                        if (cell.textColor) styleParts.push(`color: ${cell.textColor};`);
+                        if (cell.bold) styleParts.push(`font-weight: bold;`);
+                        if (cell.italic) styleParts.push(`font-style: italic;`);
+                        if (cell.align) styleParts.push(`text-align: ${cell.align};`);
+                        const inlineStyle = styleParts.join(' ');
+
                         return `
                           <td class="cell-input ${cellRef === this.activeCell ? 'cell-active' : ''}" 
                               data-ref="${cellRef}" 
+                              style="${inlineStyle}"
                               title="${isFormula ? cell.raw : cellRef}">
-                            <input type="text" class="cell-editor" value="${cell.computed}" data-ref="${cellRef}">
+                            <input type="text" class="cell-editor" 
+                                   value="${cell.computed}" 
+                                   data-ref="${cellRef}" 
+                                   style="${inlineStyle}">
                           </td>
                         `;
                       }).join('')}
@@ -432,11 +1278,27 @@
             </table>
           </div>
 
+          <!-- Practice Presets Selector -->
           <div class="spreadsheet-sample-presets">
-            <strong><i class="fa-solid fa-folder-open"></i> Practice Presets:</strong>
-            <button type="button" class="preset-chip" data-preset="marks">📊 Student Marks & Grading (Ex 8 & 9)</button>
-            <button type="button" class="preset-chip" data-preset="payroll">💼 Employee Payroll (Ex 7)</button>
-            <button type="button" class="preset-chip" data-preset="lookups">🔍 VLOOKUP & XLOOKUP (Ex 10)</button>
+            <strong><i class="fa-solid fa-folder-open"></i> Formula &amp; Lab Practice Presets:</strong>
+            <button type="button" class="preset-chip ${this.currentPreset === 'marks' ? 'active' : ''}" data-preset="marks">
+              📊 Student Marks &amp; Grading (Ex 8 &amp; 9)
+            </button>
+            <button type="button" class="preset-chip ${this.currentPreset === 'text' ? 'active' : ''}" data-preset="text">
+              🔤 Text Functions (TEXTJOIN, CONCAT, MID...)
+            </button>
+            <button type="button" class="preset-chip ${this.currentPreset === 'payroll' ? 'active' : ''}" data-preset="payroll">
+              💼 Employee Payroll (Ex 7)
+            </button>
+            <button type="button" class="preset-chip ${this.currentPreset === 'lookups' ? 'active' : ''}" data-preset="lookups">
+              🔍 Lookups Studio (VLOOKUP, XLOOKUP, INDEX+MATCH)
+            </button>
+            <button type="button" class="preset-chip ${this.currentPreset === 'timetable' ? 'active' : ''}" data-preset="timetable">
+              📅 College Class Timetable (Ex 6)
+            </button>
+            <button type="button" class="preset-chip ${this.currentPreset === 'blank' ? 'active' : ''}" data-preset="blank">
+              📄 Blank Sheet (Free Practice)
+            </button>
           </div>
         </div>
       `;
@@ -446,7 +1308,6 @@
 
     attachEvents() {
       const formulaInput = this.container.querySelector('#formula_input_field');
-      const badge = this.container.querySelector('#active_cell_badge');
 
       // Cell selection & editing
       this.container.querySelectorAll('.cell-input').forEach(td => {
@@ -485,12 +1346,89 @@
         });
       }
 
-      // Presets
+      // --- Toolbar Actions ---
+      // 1. Grid adjustments
+      const btnAddRow = this.container.querySelector('#spr_btn_add_row');
+      if (btnAddRow) btnAddRow.addEventListener('click', () => this.addRow());
+
+      const btnAddCol = this.container.querySelector('#spr_btn_add_col');
+      if (btnAddCol) btnAddCol.addEventListener('click', () => this.addColumn());
+
+      const btnDelRow = this.container.querySelector('#spr_btn_del_row');
+      if (btnDelRow) btnDelRow.addEventListener('click', () => this.removeRow());
+
+      const btnDelCol = this.container.querySelector('#spr_btn_del_col');
+      if (btnDelCol) btnDelCol.addEventListener('click', () => this.removeColumn());
+
+      const btnClear = this.container.querySelector('#spr_btn_clear');
+      if (btnClear) btnClear.addEventListener('click', () => {
+        if (confirm('Clear all cell data on current sheet?')) {
+          this.clearSheet();
+        }
+      });
+
+      // 2. Formatting: Bold, Italic, Align
+      const btnBold = this.container.querySelector('#spr_btn_bold');
+      if (btnBold) {
+        btnBold.addEventListener('click', () => {
+          const current = this.data[this.activeCell] && this.data[this.activeCell].bold;
+          this.setCellFormat(this.activeCell, 'bold', !current);
+        });
+      }
+
+      const btnItalic = this.container.querySelector('#spr_btn_italic');
+      if (btnItalic) {
+        btnItalic.addEventListener('click', () => {
+          const current = this.data[this.activeCell] && this.data[this.activeCell].italic;
+          this.setCellFormat(this.activeCell, 'italic', !current);
+        });
+      }
+
+      const btnLeft = this.container.querySelector('#spr_btn_align_left');
+      if (btnLeft) btnLeft.addEventListener('click', () => this.setCellFormat(this.activeCell, 'align', 'left'));
+
+      const btnCenter = this.container.querySelector('#spr_btn_align_center');
+      if (btnCenter) btnCenter.addEventListener('click', () => this.setCellFormat(this.activeCell, 'align', 'center'));
+
+      const btnRight = this.container.querySelector('#spr_btn_align_right');
+      if (btnRight) btnRight.addEventListener('click', () => this.setCellFormat(this.activeCell, 'align', 'right'));
+
+      // 3. Color controls: Fill Color
+      const inputFill = this.container.querySelector('#spr_input_fill_color');
+      if (inputFill) {
+        inputFill.addEventListener('input', (e) => {
+          this.setCellFormat(this.activeCell, 'bgColor', e.target.value);
+        });
+      }
+
+      this.container.querySelectorAll('.spr-quick-swatches [data-fill]').forEach(swatch => {
+        swatch.addEventListener('click', () => {
+          const fill = swatch.getAttribute('data-fill');
+          this.setCellFormat(this.activeCell, 'bgColor', fill);
+        });
+      });
+
+      // 4. Color controls: Text Color
+      const inputText = this.container.querySelector('#spr_input_text_color');
+      if (inputText) {
+        inputText.addEventListener('input', (e) => {
+          this.setCellFormat(this.activeCell, 'textColor', e.target.value);
+        });
+      }
+
+      this.container.querySelectorAll('.spr-quick-swatches [data-text]').forEach(swatch => {
+        swatch.addEventListener('click', () => {
+          const textColor = swatch.getAttribute('data-text');
+          this.setCellFormat(this.activeCell, 'textColor', textColor);
+        });
+      });
+
+      // 5. Presets
       this.container.querySelectorAll('.preset-chip').forEach(chip => {
         chip.addEventListener('click', () => {
           const preset = chip.getAttribute('data-preset');
           this.loadSampleData(preset);
-          this.updateDOM();
+          this.render();
         });
       });
     }
@@ -506,16 +1444,46 @@
       this.container.querySelectorAll('.cell-input').forEach(td => {
         td.classList.toggle('cell-active', td.getAttribute('data-ref') === ref);
       });
+
+      // Update toolbar active formatting
+      const cellData = this.data[ref] || {};
+      const btnBold = this.container.querySelector('#spr_btn_bold');
+      if (btnBold) btnBold.classList.toggle('active', !!cellData.bold);
+
+      const btnItalic = this.container.querySelector('#spr_btn_italic');
+      if (btnItalic) btnItalic.classList.toggle('active', !!cellData.italic);
+
+      const fillIndicator = this.container.querySelector('#spr_fill_indicator');
+      if (fillIndicator) fillIndicator.style.backgroundColor = cellData.bgColor || '#ffffff';
+
+      const textIndicator = this.container.querySelector('#spr_text_indicator');
+      if (textIndicator) textIndicator.style.backgroundColor = cellData.textColor || '#1e293b';
     }
 
     updateDOM() {
       this.container.querySelectorAll('.cell-input').forEach(td => {
         const ref = td.getAttribute('data-ref');
         const input = td.querySelector('.cell-editor');
-        const cell = this.data[ref] || { raw: '', computed: '' };
-        if (input && document.activeElement !== input) {
-          input.value = cell.computed;
-          td.title = cell.raw.startsWith('=') ? cell.raw : ref;
+        const cell = this.data[ref] || { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'left' };
+        
+        // Update styles
+        td.style.backgroundColor = cell.bgColor || '';
+        td.style.color = cell.textColor || '';
+        td.style.fontWeight = cell.bold ? 'bold' : 'normal';
+        td.style.fontStyle = cell.italic ? 'italic' : 'normal';
+        td.style.textAlign = cell.align || 'left';
+
+        if (input) {
+          input.style.backgroundColor = cell.bgColor || 'transparent';
+          input.style.color = cell.textColor || 'inherit';
+          input.style.fontWeight = cell.bold ? 'bold' : 'normal';
+          input.style.fontStyle = cell.italic ? 'italic' : 'normal';
+          input.style.textAlign = cell.align || 'left';
+
+          if (document.activeElement !== input) {
+            input.value = cell.computed;
+            td.title = cell.raw && cell.raw.startsWith('=') ? cell.raw : ref;
+          }
         }
       });
 
