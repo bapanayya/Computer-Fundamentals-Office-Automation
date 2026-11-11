@@ -239,6 +239,16 @@
   z-index: 2;
 }
 
+.spreadsheet-table td.cell-input.cell-in-selection {
+  background-color: rgba(59, 130, 246, 0.16) !important;
+  outline: 1.5px dashed #2563eb !important;
+  z-index: 3;
+}
+
+.spreadsheet-table td.cell-merged-master {
+  position: relative;
+}
+
 .spreadsheet-table input.cell-editor {
   width: 100%;
   border: none;
@@ -351,6 +361,30 @@
   border-color: #ef4444;
   color: #ef4444;
   background: rgba(239, 68, 68, 0.08);
+}
+
+.spr-btn-success {
+  color: #15803d;
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.spr-btn-success:hover {
+  background: #dcfce7;
+  border-color: #22c55e;
+  color: #166534;
+}
+
+.spr-btn-secondary {
+  color: #0369a1;
+  border-color: #bae6fd;
+  background: #f0f9ff;
+}
+
+.spr-btn-secondary:hover {
+  background: #e0f2fe;
+  border-color: #38bdf8;
+  color: #075985;
 }
 
 .spr-toolbar-sep {

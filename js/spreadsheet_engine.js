@@ -22,7 +22,12 @@
       this.rows = options.rows || 18;
       this.cols = options.cols || 10;
       this.data = {}; // key: 'A1', val: { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'left' }
+      this.merges = {}; // masterRef -> { startCol, startRow, endCol, endRow, colspan, rowspan, rangeStr, cells }
+      this.mergedCells = {}; // secondaryRef -> masterRef
       this.activeCell = 'A1';
+      this.selectionStart = null;
+      this.selectionEnd = null;
+      this.isSelecting = false;
       this.currentPreset = options.initialPreset || 'marks';
       this.colNames = [
         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
@@ -58,9 +63,346 @@
       return name;
     }
 
+    // --- Cell Merge & Split Operations ---
+    parseRange(rangeStr) {
+      if (!rangeStr || !rangeStr.includes(':')) return null;
+      const parts = rangeStr.split(':').map(s => s.trim().toUpperCase());
+      if (parts.length !== 2) return null;
+      const m1 = parts[0].match(/^([A-Z]+)(\d+)$/);
+      const m2 = parts[1].match(/^([A-Z]+)(\d+)$/);
+      if (!m1 || !m2) return null;
+
+      const col1 = this.colNameToIndex(m1[1]);
+      const row1 = parseInt(m1[2], 10);
+      const col2 = this.colNameToIndex(m2[1]);
+      const row2 = parseInt(m2[2], 10);
+
+      const minCol = Math.min(col1, col2);
+      const maxCol = Math.max(col1, col2);
+      const minRow = Math.min(row1, row2);
+      const maxRow = Math.max(row1, row2);
+
+      return {
+        minCol, maxCol, minRow, maxRow,
+        startRef: `${this.indexToColName(minCol)}${minRow}`,
+        endRef: `${this.indexToColName(maxCol)}${maxRow}`,
+        colspan: maxCol - minCol + 1,
+        rowspan: maxRow - minRow + 1
+      };
+    }
+
+    mergeRange(rangeStr, silent = false) {
+      const parsed = this.parseRange(rangeStr);
+      if (!parsed) return false;
+      const { minCol, maxCol, minRow, maxRow, startRef, endRef, colspan, rowspan } = parsed;
+      if (colspan === 1 && rowspan === 1) return false;
+
+      // Expand dimensions if needed
+      if (maxRow > this.rows) this.rows = maxRow;
+      if (maxCol > this.cols) this.cols = Math.min(this.colNames.length, maxCol);
+
+      // Collect all cells in rectangle
+      const cells = [];
+      for (let r = minRow; r <= maxRow; r++) {
+        for (let c = minCol; c <= maxCol; c++) {
+          cells.push(`${this.indexToColName(c)}${r}`);
+        }
+      }
+
+      // Remove overlapping merges
+      for (const master of Object.keys(this.merges)) {
+        const m = this.merges[master];
+        if (m && m.cells.some(c => cells.includes(c))) {
+          m.cells.forEach(c => delete this.mergedCells[c]);
+          delete this.merges[master];
+        }
+      }
+
+      const masterRef = startRef;
+      cells.forEach(c => {
+        if (c !== masterRef) {
+          this.mergedCells[c] = masterRef;
+        }
+      });
+
+      this.merges[masterRef] = {
+        startCol: minCol,
+        endCol: maxCol,
+        startRow: minRow,
+        endRow: maxRow,
+        colspan,
+        rowspan,
+        rangeStr: `${startRef}:${endRef}`,
+        cells
+      };
+
+      if (!this.data[masterRef]) {
+        this.data[masterRef] = { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'center' };
+      }
+      this.data[masterRef].align = 'center';
+
+      if (!silent) {
+        this.recalculateAll();
+        this.render();
+        this.setActiveCell(masterRef);
+      }
+      return true;
+    }
+
+    splitCell(ref) {
+      const target = ref || this.activeCell;
+      let masterRef = null;
+      if (this.merges[target]) {
+        masterRef = target;
+      } else if (this.mergedCells[target]) {
+        masterRef = this.mergedCells[target];
+      }
+
+      if (!masterRef || !this.merges[masterRef]) {
+        return false;
+      }
+
+      const merge = this.merges[masterRef];
+      merge.cells.forEach(c => {
+        delete this.mergedCells[c];
+      });
+      delete this.merges[masterRef];
+
+      this.recalculateAll();
+      this.render();
+      this.setActiveCell(masterRef);
+      return true;
+    }
+
+    isCellMerged(ref) {
+      return !!(this.merges[ref] || this.mergedCells[ref]);
+    }
+
+    getMergeInfo(ref) {
+      if (this.merges[ref]) return this.merges[ref];
+      if (this.mergedCells[ref]) return this.merges[this.mergedCells[ref]];
+      return null;
+    }
+
+    highlightSelection() {
+      if (!this.container) return;
+      const allCells = this.container.querySelectorAll('.cell-input');
+      allCells.forEach(td => td.classList.remove('cell-in-selection'));
+
+      const badge = this.container.querySelector('#active_cell_badge');
+
+      if (!this.selectionStart || !this.selectionEnd || this.selectionStart === this.selectionEnd) {
+        if (badge) {
+          const mInfo = this.getMergeInfo(this.activeCell);
+          badge.textContent = mInfo ? `${this.activeCell} (Merged: ${mInfo.rangeStr})` : this.activeCell;
+        }
+        return;
+      }
+
+      const m1 = this.selectionStart.match(/^([A-Z]+)(\d+)$/);
+      const m2 = this.selectionEnd.match(/^([A-Z]+)(\d+)$/);
+      if (!m1 || !m2) return;
+
+      const c1 = this.colNameToIndex(m1[1]);
+      const r1 = parseInt(m1[2], 10);
+      const c2 = this.colNameToIndex(m2[1]);
+      const r2 = parseInt(m2[2], 10);
+
+      const minCol = Math.min(c1, c2);
+      const maxCol = Math.max(c1, c2);
+      const minRow = Math.min(r1, r2);
+      const maxRow = Math.max(r1, r2);
+
+      allCells.forEach(td => {
+        const ref = td.getAttribute('data-ref');
+        if (ref) {
+          const m = ref.match(/^([A-Z]+)(\d+)$/);
+          if (m) {
+            const col = this.colNameToIndex(m[1]);
+            const row = parseInt(m[2], 10);
+            if (col >= minCol && col <= maxCol && row >= minRow && row <= maxRow) {
+              td.classList.add('cell-in-selection');
+            }
+          }
+        }
+      });
+
+      if (badge) {
+        badge.textContent = `${this.indexToColName(minCol)}${minRow}:${this.indexToColName(maxCol)}${maxRow} (Selected)`;
+      }
+    }
+
+    // --- Download / Export Methods ---
+    exportToExcel() {
+      const preset = this.currentPreset || 'practiced';
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const filename = `${preset}_spreadsheet_${dateStr}.xls`;
+
+      let maxR = 1, maxC = 1;
+      for (let r = 1; r <= this.rows; r++) {
+        for (let c = 1; c <= this.cols; c++) {
+          const ref = `${this.indexToColName(c)}${r}`;
+          const cell = this.data[ref];
+          const isMerge = this.isCellMerged(ref);
+          if (cell && (cell.raw || cell.computed || cell.bgColor || cell.bold || cell.italic || isMerge)) {
+            if (r > maxR) maxR = r;
+            if (c > maxC) maxC = c;
+          }
+        }
+      }
+      maxR = Math.min(this.rows, Math.max(maxR + 2, 8));
+      maxC = Math.min(this.cols, Math.max(maxC + 1, 6));
+
+      let thHtml = `<th style="background:#f1f5f9; color:#475569; font-weight:bold; border:0.5pt solid #cbd5e1; width:36px; text-align:center;">#</th>`;
+      for (let c = 1; c <= maxC; c++) {
+        thHtml += `<th style="background:#f1f5f9; color:#334155; font-weight:bold; border:0.5pt solid #cbd5e1; text-align:center; min-width:85px; padding:6px 10px;">${this.indexToColName(c)}</th>`;
+      }
+
+      let trHtml = '';
+      for (let r = 1; r <= maxR; r++) {
+        let tds = `<th style="background:#f1f5f9; color:#475569; font-weight:bold; border:0.5pt solid #cbd5e1; text-align:center; padding:4px 6px;">${r}</th>`;
+        for (let c = 1; c <= maxC; c++) {
+          const ref = `${this.indexToColName(c)}${r}`;
+          if (this.mergedCells && this.mergedCells[ref]) {
+            continue; // Skip secondary merged cell
+          }
+
+          const merge = this.merges && this.merges[ref];
+          const colspanAttr = merge && merge.colspan > 1 ? ` colspan="${merge.colspan}"` : '';
+          const rowspanAttr = merge && merge.rowspan > 1 ? ` rowspan="${merge.rowspan}"` : '';
+
+          const cell = this.data[ref] || {};
+          const raw = cell.raw || '';
+          const val = cell.computed !== undefined ? cell.computed : '';
+          const isFormula = raw.startsWith('=');
+          const fmlaAttr = isFormula ? ` x:fmla="${raw.replace(/"/g, '&quot;')}"` : '';
+
+          const styleRules = [
+            `border: 0.5pt solid #cbd5e1;`,
+            `padding: 4px 8px;`,
+            `vertical-align: middle;`,
+            cell.bgColor ? `background-color: ${cell.bgColor};` : `background-color: #ffffff;`,
+            cell.textColor ? `color: ${cell.textColor};` : `color: #1e293b;`,
+            cell.bold ? `font-weight: bold;` : ``,
+            cell.italic ? `font-style: italic;` : ``,
+            cell.align ? `text-align: ${cell.align};` : `text-align: left;`
+          ].filter(Boolean).join(' ');
+
+          tds += `<td style="${styleRules}"${colspanAttr}${rowspanAttr}${fmlaAttr}>${val}</td>`;
+        }
+        trHtml += `<tr>${tds}</tr>\n`;
+      }
+
+      const content = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office"
+              xmlns:x="urn:schemas-microsoft-com:office:excel"
+              xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+          <!--[if gte mso 9]>
+          <xml>
+            <x:ExcelWorkbook>
+              <x:ExcelWorksheets>
+                <x:ExcelWorksheet>
+                  <x:Name>Practiced Sheet</x:Name>
+                  <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+                </x:ExcelWorksheet>
+              </x:ExcelWorksheets>
+            </x:ExcelWorkbook>
+          </xml>
+          <![endif]-->
+          <style>
+            table { border-collapse: collapse; font-family: Calibri, 'Segoe UI', Arial, sans-serif; font-size: 11pt; }
+          </style>
+        </head>
+        <body>
+          <table border="1">
+            <thead><tr>${thHtml}</tr></thead>
+            <tbody>${trHtml}</tbody>
+          </table>
+        </body>
+        </html>
+      `.trim();
+
+      const blob = new Blob([content], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    exportToCSV(includeFormulas = false) {
+      const preset = this.currentPreset || 'practiced';
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const modeStr = includeFormulas ? 'formulas' : 'values';
+      const filename = `${preset}_spreadsheet_${modeStr}_${dateStr}.csv`;
+
+      let maxR = 1, maxC = 1;
+      for (let r = 1; r <= this.rows; r++) {
+        for (let c = 1; c <= this.cols; c++) {
+          const ref = `${this.indexToColName(c)}${r}`;
+          const cell = this.data[ref];
+          const isMerge = this.isCellMerged(ref);
+          if (cell && (cell.raw || cell.computed || isMerge)) {
+            if (r > maxR) maxR = r;
+            if (c > maxC) maxC = c;
+          }
+        }
+      }
+      maxR = Math.min(this.rows, Math.max(maxR + 1, 6));
+      maxC = Math.min(this.cols, Math.max(maxC + 1, 5));
+
+      const rows = [];
+      const header = ['#'];
+      for (let c = 1; c <= maxC; c++) {
+        header.push(this.indexToColName(c));
+      }
+      rows.push(header.join(','));
+
+      for (let r = 1; r <= maxR; r++) {
+        const rowData = [r.toString()];
+        for (let c = 1; c <= maxC; c++) {
+          const ref = `${this.indexToColName(c)}${r}`;
+          if (this.mergedCells && this.mergedCells[ref]) {
+            rowData.push('""');
+            continue;
+          }
+          const cell = this.data[ref] || {};
+          let val = includeFormulas && cell.raw && cell.raw.startsWith('=')
+            ? cell.raw
+            : (cell.computed !== undefined ? String(cell.computed) : '');
+          val = val.replace(/"/g, '""');
+          if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+            val = `"${val}"`;
+          }
+          rowData.push(val);
+        }
+        rows.push(rowData.join(','));
+      }
+
+      const csvContent = '\uFEFF' + rows.join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
     // --- Data Management ---
     loadData(dataObj) {
       this.data = {};
+      this.merges = {};
+      this.mergedCells = {};
+      this.selectionStart = null;
+      this.selectionEnd = null;
       for (const [k, v] of Object.entries(dataObj)) {
         const ref = k.toUpperCase().replace(/\$/g, '');
         if (typeof v === 'object' && v !== null && v.raw !== undefined) {
@@ -91,6 +433,10 @@
     loadSampleData(presetName) {
       this.currentPreset = presetName;
       this.data = {};
+      this.merges = {};
+      this.mergedCells = {};
+      this.selectionStart = null;
+      this.selectionEnd = null;
 
       if (presetName === 'marks') {
         this.rows = Math.max(this.rows, 18);
@@ -325,9 +671,13 @@
           'D4': { raw: 'TEA BREAK', bgColor: '#fef08a', bold: true },
           'E4': { raw: 'Physics Theory' },
           'F4': { raw: 'LUNCH BREAK', bgColor: '#fed7aa', bold: true },
-          'G4': { raw: 'Computer Lab (Batch B)', bgColor: '#bae6fd' },
-          'H4': { raw: 'Computer Lab (Batch B)', bgColor: '#bae6fd' }
+          'G4': { raw: 'Computer Lab (Batch B)', bgColor: '#bae6fd', bold: true, align: 'center' },
+          'H4': { raw: '' }
         };
+
+        // Pre-merge 2-hour practical lab slots for clear visual illustration
+        this.mergeRange('G2:H2', true);
+        this.mergeRange('G4:H4', true);
       } else if (presetName === 'blank') {
         this.rows = Math.max(this.rows, 18);
         this.cols = Math.max(this.cols, 10);
@@ -1112,8 +1462,12 @@
 
     clearSheet() {
       this.data = {};
+      this.merges = {};
+      this.mergedCells = {};
+      this.selectionStart = null;
+      this.selectionEnd = null;
       this.recalculateAll();
-      this.updateDOM();
+      this.render();
     }
 
     // --- UI Rendering ---
@@ -1170,6 +1524,19 @@
 
             <div class="spr-toolbar-sep"></div>
 
+            <!-- Cells Merge & Split -->
+            <div class="toolbar-btn-group merge-group">
+              <span class="toolbar-group-label"><i class="fa-solid fa-object-group"></i> Merge</span>
+              <button type="button" class="spr-tool-btn" id="spr_btn_merge" title="Merge & Center selected cells (drag across cells or click to enter range)">
+                <i class="fa-solid fa-arrows-to-dot"></i> Merge &amp; Center
+              </button>
+              <button type="button" class="spr-tool-btn ${this.isCellMerged(this.activeCell) ? 'active' : ''}" id="spr_btn_split" title="Split / Unmerge selected merged cell">
+                <i class="fa-solid fa-arrows-split-up-and-left"></i> Split Cells
+              </button>
+            </div>
+
+            <div class="spr-toolbar-sep"></div>
+
             <!-- Color Palette & Fill Options -->
             <div class="toolbar-btn-group color-group">
               <span class="toolbar-group-label"><i class="fa-solid fa-palette"></i> Colors</span>
@@ -1217,6 +1584,19 @@
 
             <div class="spr-toolbar-sep"></div>
 
+            <!-- Download / Export Actions -->
+            <div class="toolbar-btn-group export-group">
+              <span class="toolbar-group-label"><i class="fa-solid fa-file-arrow-down"></i> Download</span>
+              <button type="button" class="spr-tool-btn spr-btn-success" id="spr_btn_dl_excel" title="Download Excel workbook (.xls) with colors, merged cells & formulas">
+                <i class="fa-solid fa-file-excel"></i> Excel (.xls)
+              </button>
+              <button type="button" class="spr-tool-btn spr-btn-secondary" id="spr_btn_dl_csv" title="Download CSV table (.csv)">
+                <i class="fa-solid fa-file-csv"></i> CSV (.csv)
+              </button>
+            </div>
+
+            <div class="spr-toolbar-sep"></div>
+
             <!-- Clear Action -->
             <div class="toolbar-btn-group">
               <button type="button" class="spr-tool-btn spr-btn-danger" id="spr_btn_clear" title="Clear All Cells">
@@ -1249,6 +1629,17 @@
                       <th class="row-header">${rowNum}</th>
                       ${this.colNames.slice(0, this.cols).map(c => {
                         const cellRef = `${c}${rowNum}`;
+
+                        // Skip secondary merged cells (covered by an existing merge master)
+                        if (this.mergedCells && this.mergedCells[cellRef]) {
+                          return '';
+                        }
+
+                        const merge = this.merges && this.merges[cellRef];
+                        const colspanAttr = merge && merge.colspan > 1 ? ` colspan="${merge.colspan}"` : '';
+                        const rowspanAttr = merge && merge.rowspan > 1 ? ` rowspan="${merge.rowspan}"` : '';
+                        const isMergedMaster = !!merge;
+
                         const cell = this.data[cellRef] || { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'left' };
                         const isFormula = cell.raw && cell.raw.startsWith('=');
                         const styleParts = [];
@@ -1259,11 +1650,15 @@
                         if (cell.align) styleParts.push(`text-align: ${cell.align};`);
                         const inlineStyle = styleParts.join(' ');
 
+                        const isCellActive = cellRef === this.activeCell || (this.mergedCells && this.mergedCells[this.activeCell] === cellRef);
+
                         return `
-                          <td class="cell-input ${cellRef === this.activeCell ? 'cell-active' : ''}" 
+                          <td class="cell-input ${isCellActive ? 'cell-active' : ''} ${isMergedMaster ? 'cell-merged-master' : ''}" 
                               data-ref="${cellRef}" 
+                              ${colspanAttr}
+                              ${rowspanAttr}
                               style="${inlineStyle}"
-                              title="${isFormula ? cell.raw : cellRef}">
+                              title="${isFormula ? cell.raw : cellRef}${isMergedMaster ? ' (Merged ' + merge.rangeStr + ')' : ''}">
                             <input type="text" class="cell-editor" 
                                    value="${cell.computed}" 
                                    data-ref="${cellRef}" 
@@ -1309,13 +1704,36 @@
     attachEvents() {
       const formulaInput = this.container.querySelector('#formula_input_field');
 
-      // Cell selection & editing
+      // Cell selection, drag-to-select & editing
       this.container.querySelectorAll('.cell-input').forEach(td => {
         const input = td.querySelector('.cell-editor');
         const ref = td.getAttribute('data-ref');
 
-        td.addEventListener('click', () => {
-          this.setActiveCell(ref);
+        td.addEventListener('mousedown', (e) => {
+          if (e.shiftKey && this.activeCell) {
+            this.selectionStart = this.activeCell;
+            this.selectionEnd = ref;
+            this.highlightSelection();
+          } else {
+            this.isSelecting = true;
+            this.selectionStart = ref;
+            this.selectionEnd = ref;
+            this.setActiveCell(ref);
+            this.highlightSelection();
+          }
+        });
+
+        td.addEventListener('mouseenter', () => {
+          if (this.isSelecting) {
+            this.selectionEnd = ref;
+            this.highlightSelection();
+          }
+        });
+
+        td.addEventListener('click', (e) => {
+          if (!e.shiftKey) {
+            this.setActiveCell(ref);
+          }
         });
 
         input.addEventListener('focus', () => {
@@ -1333,6 +1751,16 @@
           }
         });
       });
+
+      // Stop drag-selection on mouseup
+      const stopSelecting = () => {
+        this.isSelecting = false;
+      };
+      if (this._boundMouseUp) {
+        document.removeEventListener('mouseup', this._boundMouseUp);
+      }
+      this._boundMouseUp = stopSelecting;
+      document.addEventListener('mouseup', this._boundMouseUp);
 
       // Formula bar events
       if (formulaInput) {
@@ -1393,7 +1821,66 @@
       const btnRight = this.container.querySelector('#spr_btn_align_right');
       if (btnRight) btnRight.addEventListener('click', () => this.setCellFormat(this.activeCell, 'align', 'right'));
 
-      // 3. Color controls: Fill Color
+      // 3. Cells Merge & Split Actions
+      const btnMerge = this.container.querySelector('#spr_btn_merge');
+      if (btnMerge) {
+        btnMerge.addEventListener('click', () => {
+          let rangeToMerge = null;
+          if (this.selectionStart && this.selectionEnd && this.selectionStart !== this.selectionEnd) {
+            const m1 = this.selectionStart.match(/^([A-Z]+)(\d+)$/);
+            const m2 = this.selectionEnd.match(/^([A-Z]+)(\d+)$/);
+            if (m1 && m2) {
+              const c1 = this.colNameToIndex(m1[1]), r1 = parseInt(m1[2], 10);
+              const c2 = this.colNameToIndex(m2[1]), r2 = parseInt(m2[2], 10);
+              rangeToMerge = `${this.indexToColName(Math.min(c1, c2))}${Math.min(r1, r2)}:${this.indexToColName(Math.max(c1, c2))}${Math.max(r1, r2)}`;
+            }
+          }
+
+          if (!rangeToMerge) {
+            const activeColMatch = this.activeCell.match(/^([A-Z]+)(\d+)$/);
+            const defCol = activeColMatch ? this.indexToColName(Math.min(this.cols, this.colNameToIndex(activeColMatch[1]) + 1)) : 'B';
+            const defRow = activeColMatch ? activeColMatch[2] : '1';
+            const entered = prompt('Enter cell range to Merge & Center (e.g. A1:D1 or B2:C4):', `${this.activeCell}:${defCol}${defRow}`);
+            if (entered && entered.trim()) {
+              rangeToMerge = entered.trim().toUpperCase();
+            }
+          }
+
+          if (rangeToMerge) {
+            const ok = this.mergeRange(rangeToMerge);
+            if (!ok) {
+              alert('Invalid range for merge. Please use format like A1:D1 or B2:C4.');
+            }
+          }
+        });
+      }
+
+      const btnSplit = this.container.querySelector('#spr_btn_split');
+      if (btnSplit) {
+        btnSplit.addEventListener('click', () => {
+          const ok = this.splitCell(this.activeCell);
+          if (!ok) {
+            alert(`Cell ${this.activeCell} is not currently merged.\nSelect a merged cell first to split it.`);
+          }
+        });
+      }
+
+      // 4. Download / Export Actions
+      const btnDlExcel = this.container.querySelector('#spr_btn_dl_excel');
+      if (btnDlExcel) {
+        btnDlExcel.addEventListener('click', () => {
+          this.exportToExcel();
+        });
+      }
+
+      const btnDlCsv = this.container.querySelector('#spr_btn_dl_csv');
+      if (btnDlCsv) {
+        btnDlCsv.addEventListener('click', (e) => {
+          this.exportToCSV(e.shiftKey || e.altKey);
+        });
+      }
+
+      // 5. Color controls: Fill Color
       const inputFill = this.container.querySelector('#spr_input_fill_color');
       if (inputFill) {
         inputFill.addEventListener('input', (e) => {
@@ -1408,7 +1895,7 @@
         });
       });
 
-      // 4. Color controls: Text Color
+      // 6. Color controls: Text Color
       const inputText = this.container.querySelector('#spr_input_text_color');
       if (inputText) {
         inputText.addEventListener('input', (e) => {
@@ -1423,7 +1910,7 @@
         });
       });
 
-      // 5. Presets
+      // 7. Presets
       this.container.querySelectorAll('.preset-chip').forEach(chip => {
         chip.addEventListener('click', () => {
           const preset = chip.getAttribute('data-preset');
@@ -1434,11 +1921,17 @@
     }
 
     setActiveCell(ref) {
+      if (this.mergedCells && this.mergedCells[ref]) {
+        ref = this.mergedCells[ref];
+      }
       this.activeCell = ref;
       const badge = this.container.querySelector('#active_cell_badge');
       const formulaInput = this.container.querySelector('#formula_input_field');
 
-      if (badge) badge.textContent = ref;
+      const mergeInfo = this.getMergeInfo(ref);
+      if (badge) {
+        badge.textContent = mergeInfo ? `${ref} (${mergeInfo.rangeStr})` : ref;
+      }
       if (formulaInput) formulaInput.value = this.getRawValue(ref);
 
       this.container.querySelectorAll('.cell-input').forEach(td => {
@@ -1452,6 +1945,9 @@
 
       const btnItalic = this.container.querySelector('#spr_btn_italic');
       if (btnItalic) btnItalic.classList.toggle('active', !!cellData.italic);
+
+      const btnSplit = this.container.querySelector('#spr_btn_split');
+      if (btnSplit) btnSplit.classList.toggle('active', !!mergeInfo);
 
       const fillIndicator = this.container.querySelector('#spr_fill_indicator');
       if (fillIndicator) fillIndicator.style.backgroundColor = cellData.bgColor || '#ffffff';
