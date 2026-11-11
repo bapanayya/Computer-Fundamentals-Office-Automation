@@ -21,9 +21,13 @@
       this.container = typeof containerId === 'string' ? document.getElementById(containerId) : containerId;
       this.rows = options.rows || 18;
       this.cols = options.cols || 10;
-      this.data = {}; // key: 'A1', val: { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'left' }
+      this.data = {}; // key: 'A1', val: { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'left', wrapText: false }
       this.merges = {}; // masterRef -> { startCol, startRow, endCol, endRow, colspan, rowspan, rangeStr, cells }
       this.mergedCells = {}; // secondaryRef -> masterRef
+      this.colWidths = options.colWidths || {};
+      this.rowHeights = options.rowHeights || {};
+      this.defaultColWidth = 110;
+      this.defaultRowHeight = 28;
       this.activeCell = 'A1';
       this.selectionStart = null;
       this.selectionEnd = null;
@@ -41,6 +45,101 @@
         this.loadSampleData(this.currentPreset);
       }
 
+      this.render();
+    }
+
+    // --- Column & Row Dimension Helpers ---
+    getColWidth(col) {
+      return this.colWidths[col] || this.defaultColWidth;
+    }
+
+    setColWidth(col, width) {
+      const w = Math.max(50, Math.min(650, Math.round(width)));
+      this.colWidths[col] = w;
+      this.applyColWidthDOM(col, w);
+    }
+
+    getRowHeight(row) {
+      return this.rowHeights[row] || (row === 1 ? 32 : this.defaultRowHeight);
+    }
+
+    setRowHeight(row, height) {
+      const h = Math.max(22, Math.min(300, Math.round(height)));
+      this.rowHeights[row] = h;
+      this.applyRowHeightDOM(row, h);
+    }
+
+    applyColWidthDOM(col, width) {
+      if (!this.container) return;
+      const colElem = this.container.querySelector(`col[data-col="${col}"]`);
+      if (colElem) {
+        colElem.style.width = `${width}px`;
+        colElem.style.minWidth = `${width}px`;
+      }
+      const thElem = this.container.querySelector(`th.col-header[data-col="${col}"]`);
+      if (thElem) {
+        thElem.style.width = `${width}px`;
+        thElem.style.minWidth = `${width}px`;
+      }
+    }
+
+    applyRowHeightDOM(row, height) {
+      if (!this.container) return;
+      const trElem = this.container.querySelector(`tr[data-row="${row}"]`);
+      if (trElem) {
+        trElem.style.height = `${height}px`;
+      }
+      const thElem = this.container.querySelector(`th.row-header[data-row="${row}"]`);
+      if (thElem) {
+        thElem.style.height = `${height}px`;
+      }
+    }
+
+    autoFitColumn(col) {
+      let maxLen = col.length;
+      for (let r = 1; r <= this.rows; r++) {
+        const ref = `${col}${r}`;
+        const cell = this.data[ref];
+        if (cell) {
+          const val = cell.computed !== undefined && cell.computed !== '' ? String(cell.computed) : (cell.raw || '');
+          if (!this.mergedCells[ref]) {
+            const lines = val.split('\n');
+            for (const line of lines) {
+              if (line.length > maxLen) maxLen = line.length;
+            }
+          }
+        }
+      }
+      const neededWidth = Math.max(95, Math.min(480, Math.round(maxLen * 8.8 + 34)));
+      this.colWidths[col] = neededWidth;
+      this.applyColWidthDOM(col, neededWidth);
+      return neededWidth;
+    }
+
+    autoFitColumnsSilent() {
+      for (let c = 1; c <= this.cols; c++) {
+        const colName = this.indexToColName(c);
+        let maxLen = colName.length;
+        for (let r = 1; r <= this.rows; r++) {
+          const ref = `${colName}${r}`;
+          const cell = this.data[ref];
+          if (cell) {
+            const val = cell.computed !== undefined && cell.computed !== '' ? String(cell.computed) : (cell.raw || '');
+            if (!this.mergedCells[ref]) {
+              const lines = val.split('\n');
+              for (const line of lines) {
+                if (line.length > maxLen) maxLen = line.length;
+              }
+            }
+          }
+        }
+        const neededWidth = Math.max(95, Math.min(480, Math.round(maxLen * 8.8 + 34)));
+        this.colWidths[colName] = neededWidth;
+      }
+    }
+
+    autoFitColumns() {
+      this.autoFitColumnsSilent();
       this.render();
     }
 
@@ -401,6 +500,8 @@
       this.data = {};
       this.merges = {};
       this.mergedCells = {};
+      this.colWidths = {};
+      this.rowHeights = {};
       this.selectionStart = null;
       this.selectionEnd = null;
       for (const [k, v] of Object.entries(dataObj)) {
@@ -413,7 +514,8 @@
             textColor: v.textColor || '',
             bold: !!v.bold,
             italic: !!v.italic,
-            align: v.align || 'left'
+            align: v.align || 'left',
+            wrapText: !!v.wrapText
           };
         } else {
           this.data[ref] = {
@@ -423,11 +525,13 @@
             textColor: '',
             bold: false,
             italic: false,
-            align: 'left'
+            align: 'left',
+            wrapText: false
           };
         }
       }
       this.recalculateAll();
+      this.autoFitColumnsSilent();
     }
 
     loadSampleData(presetName) {
@@ -435,6 +539,8 @@
       this.data = {};
       this.merges = {};
       this.mergedCells = {};
+      this.colWidths = {};
+      this.rowHeights = {};
       this.selectionStart = null;
       this.selectionEnd = null;
 
@@ -685,6 +791,7 @@
       }
 
       this.recalculateAll();
+      this.autoFitColumnsSilent();
     }
 
     getCellValue(ref) {
@@ -704,7 +811,7 @@
     setCellValue(ref, val) {
       ref = ref.toUpperCase().replace(/\$/g, '');
       if (!this.data[ref]) {
-        this.data[ref] = { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'left' };
+        this.data[ref] = { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'left', wrapText: false };
       }
       this.data[ref].raw = String(val);
       this.recalculateAll();
@@ -714,7 +821,7 @@
     setCellFormat(ref, prop, value) {
       ref = ref.toUpperCase().replace(/\$/g, '');
       if (!this.data[ref]) {
-        this.data[ref] = { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'left' };
+        this.data[ref] = { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'left', wrapText: false };
       }
       this.data[ref][prop] = value;
       this.updateDOM();
@@ -1464,6 +1571,8 @@
       this.data = {};
       this.merges = {};
       this.mergedCells = {};
+      this.colWidths = {};
+      this.rowHeights = {};
       this.selectionStart = null;
       this.selectionEnd = null;
       this.recalculateAll();
@@ -1532,6 +1641,40 @@
               </button>
               <button type="button" class="spr-tool-btn ${this.isCellMerged(this.activeCell) ? 'active' : ''}" id="spr_btn_split" title="Split / Unmerge selected merged cell">
                 <i class="fa-solid fa-arrows-split-up-and-left"></i> Split Cells
+              </button>
+            </div>
+
+            <div class="spr-toolbar-sep"></div>
+
+            <!-- Cell Dimensions & Visibility -->
+            <div class="toolbar-btn-group size-group">
+              <span class="toolbar-group-label"><i class="fa-solid fa-arrows-up-down-left-right"></i> Size</span>
+              <button type="button" class="spr-tool-btn spr-btn-primary" id="spr_btn_autofit" title="Auto-fit all column widths so all cell contents are completely visible">
+                <i class="fa-solid fa-arrows-left-right-to-line"></i> Auto-Fit
+              </button>
+              
+              <div class="spr-size-stepper" title="Adjust Active Column Width">
+                <span class="spr-stepper-label">Width:</span>
+                <button type="button" class="spr-step-btn" id="spr_btn_col_w_minus" title="Decrease Column Width (-15px)">
+                  <i class="fa-solid fa-minus"></i>
+                </button>
+                <button type="button" class="spr-step-btn" id="spr_btn_col_w_plus" title="Increase Column Width (+20px)">
+                  <i class="fa-solid fa-plus"></i>
+                </button>
+              </div>
+
+              <div class="spr-size-stepper" title="Adjust Active Row Height">
+                <span class="spr-stepper-label">Height:</span>
+                <button type="button" class="spr-step-btn" id="spr_btn_row_h_minus" title="Decrease Row Height (-6px)">
+                  <i class="fa-solid fa-minus"></i>
+                </button>
+                <button type="button" class="spr-step-btn" id="spr_btn_row_h_plus" title="Increase Row Height (+8px)">
+                  <i class="fa-solid fa-plus"></i>
+                </button>
+              </div>
+
+              <button type="button" class="spr-tool-btn ${activeCellData.wrapText ? 'active' : ''}" id="spr_btn_wrap_text" title="Wrap long cell text onto multiple lines">
+                <i class="fa-solid fa-text-width"></i> Wrap Text
               </button>
             </div>
 
@@ -1615,18 +1758,33 @@
           <!-- Table Wrapper Grid -->
           <div class="spreadsheet-table-wrapper">
             <table class="spreadsheet-table">
+              <colgroup>
+                <col style="width: 44px; min-width: 44px; max-width: 44px;">
+                ${this.colNames.slice(0, this.cols).map(c => `
+                  <col data-col="${c}" style="width: ${this.getColWidth(c)}px; min-width: ${this.getColWidth(c)}px;">
+                `).join('')}
+              </colgroup>
               <thead>
-                <tr>
-                  <th class="row-header">#</th>
-                  ${this.colNames.slice(0, this.cols).map(c => `<th>${c}</th>`).join('')}
+                <tr data-row="0" style="height: 32px;">
+                  <th class="row-header corner-header">#</th>
+                  ${this.colNames.slice(0, this.cols).map(c => `
+                    <th class="col-header" data-col="${c}" style="width: ${this.getColWidth(c)}px; min-width: ${this.getColWidth(c)}px;">
+                      <span class="col-header-text">${c}</span>
+                      <span class="col-resizer" data-col="${c}" title="Drag to resize column width, double-click to auto-fit"></span>
+                    </th>
+                  `).join('')}
                 </tr>
               </thead>
               <tbody>
                 ${Array.from({ length: this.rows }, (_, r) => {
                   const rowNum = r + 1;
+                  const rowHeight = this.getRowHeight(rowNum);
                   return `
-                    <tr>
-                      <th class="row-header">${rowNum}</th>
+                    <tr data-row="${rowNum}" style="height: ${rowHeight}px;">
+                      <th class="row-header" data-row="${rowNum}" style="height: ${rowHeight}px;">
+                        <span class="row-header-text">${rowNum}</span>
+                        <span class="row-resizer" data-row="${rowNum}" title="Drag to resize row height, double-click to reset"></span>
+                      </th>
                       ${this.colNames.slice(0, this.cols).map(c => {
                         const cellRef = `${c}${rowNum}`;
 
@@ -1640,7 +1798,7 @@
                         const rowspanAttr = merge && merge.rowspan > 1 ? ` rowspan="${merge.rowspan}"` : '';
                         const isMergedMaster = !!merge;
 
-                        const cell = this.data[cellRef] || { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'left' };
+                        const cell = this.data[cellRef] || { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'left', wrapText: false };
                         const isFormula = cell.raw && cell.raw.startsWith('=');
                         const styleParts = [];
                         if (cell.bgColor) styleParts.push(`background-color: ${cell.bgColor};`);
@@ -1648,21 +1806,24 @@
                         if (cell.bold) styleParts.push(`font-weight: bold;`);
                         if (cell.italic) styleParts.push(`font-style: italic;`);
                         if (cell.align) styleParts.push(`text-align: ${cell.align};`);
+                        if (cell.wrapText) styleParts.push(`white-space: normal; word-break: break-word;`);
                         const inlineStyle = styleParts.join(' ');
 
                         const isCellActive = cellRef === this.activeCell || (this.mergedCells && this.mergedCells[this.activeCell] === cellRef);
+                        const isWrap = !!cell.wrapText;
+
+                        const editorHtml = isWrap
+                          ? `<textarea class="cell-editor cell-textarea wrap-text" data-ref="${cellRef}" style="${inlineStyle}">${cell.computed !== undefined ? cell.computed : ''}</textarea>`
+                          : `<input type="text" class="cell-editor" value="${cell.computed !== undefined ? cell.computed : ''}" data-ref="${cellRef}" style="${inlineStyle}">`;
 
                         return `
-                          <td class="cell-input ${isCellActive ? 'cell-active' : ''} ${isMergedMaster ? 'cell-merged-master' : ''}" 
+                          <td class="cell-input ${isCellActive ? 'cell-active' : ''} ${isMergedMaster ? 'cell-merged-master' : ''} ${isWrap ? 'cell-wrap' : ''}" 
                               data-ref="${cellRef}" 
                               ${colspanAttr}
                               ${rowspanAttr}
                               style="${inlineStyle}"
-                              title="${isFormula ? cell.raw : cellRef}${isMergedMaster ? ' (Merged ' + merge.rangeStr + ')' : ''}">
-                            <input type="text" class="cell-editor" 
-                                   value="${cell.computed}" 
-                                   data-ref="${cellRef}" 
-                                   style="${inlineStyle}">
+                              title="${isFormula ? cell.raw : (cell.computed !== undefined && cell.computed !== '' ? cell.computed : cellRef)}${isMergedMaster ? ' (Merged ' + merge.rangeStr + ')' : ''}">
+                            ${editorHtml}
                           </td>
                         `;
                       }).join('')}
@@ -1865,7 +2026,154 @@
         });
       }
 
-      // 4. Download / Export Actions
+      // 4. Size Controls: Auto-Fit, Column Width, Row Height, Wrap Text
+      const btnAutoFit = this.container.querySelector('#spr_btn_autofit');
+      if (btnAutoFit) {
+        btnAutoFit.addEventListener('click', () => {
+          this.autoFitColumns();
+        });
+      }
+
+      const btnColWPlus = this.container.querySelector('#spr_btn_col_w_plus');
+      if (btnColWPlus) {
+        btnColWPlus.addEventListener('click', () => {
+          const m = this.activeCell.match(/^([A-Z]+)/);
+          const col = m ? m[1] : 'A';
+          this.setColWidth(col, this.getColWidth(col) + 20);
+          this.render();
+        });
+      }
+
+      const btnColWMinus = this.container.querySelector('#spr_btn_col_w_minus');
+      if (btnColWMinus) {
+        btnColWMinus.addEventListener('click', () => {
+          const m = this.activeCell.match(/^([A-Z]+)/);
+          const col = m ? m[1] : 'A';
+          this.setColWidth(col, Math.max(50, this.getColWidth(col) - 15));
+          this.render();
+        });
+      }
+
+      const btnRowHPlus = this.container.querySelector('#spr_btn_row_h_plus');
+      if (btnRowHPlus) {
+        btnRowHPlus.addEventListener('click', () => {
+          const m = this.activeCell.match(/\d+/);
+          const row = m ? parseInt(m[0], 10) : 1;
+          this.setRowHeight(row, this.getRowHeight(row) + 8);
+          this.render();
+        });
+      }
+
+      const btnRowHMinus = this.container.querySelector('#spr_btn_row_h_minus');
+      if (btnRowHMinus) {
+        btnRowHMinus.addEventListener('click', () => {
+          const m = this.activeCell.match(/\d+/);
+          const row = m ? parseInt(m[0], 10) : 1;
+          this.setRowHeight(row, Math.max(22, this.getRowHeight(row) - 6));
+          this.render();
+        });
+      }
+
+      const btnWrapText = this.container.querySelector('#spr_btn_wrap_text');
+      if (btnWrapText) {
+        btnWrapText.addEventListener('click', () => {
+          const current = this.data[this.activeCell] && this.data[this.activeCell].wrapText;
+          this.setCellFormat(this.activeCell, 'wrapText', !current);
+          if (!current) {
+            const m = this.activeCell.match(/\d+/);
+            const row = m ? parseInt(m[0], 10) : 1;
+            if (this.getRowHeight(row) < 46) {
+              this.setRowHeight(row, 46);
+            }
+          }
+          this.render();
+        });
+      }
+
+      // 5. Interactive Drag-to-Resize on Headers
+      // Column Drag-to-Resize & Double-Click Auto-Fit
+      this.container.querySelectorAll('.col-resizer').forEach(resizer => {
+        const col = resizer.getAttribute('data-col');
+
+        resizer.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          this.autoFitColumn(col);
+          this.render();
+        });
+
+        resizer.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const startX = e.clientX;
+          const startWidth = this.getColWidth(col);
+
+          resizer.classList.add('is-resizing');
+          document.body.style.cursor = 'col-resize';
+          document.body.style.userSelect = 'none';
+
+          const onMouseMove = (moveEvent) => {
+            const delta = moveEvent.clientX - startX;
+            const newWidth = Math.max(50, Math.min(650, startWidth + delta));
+            this.colWidths[col] = newWidth;
+            this.applyColWidthDOM(col, newWidth);
+          };
+
+          const onMouseUp = () => {
+            resizer.classList.remove('is-resizing');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+          };
+
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
+        });
+      });
+
+      // Row Drag-to-Resize & Double-Click Reset
+      this.container.querySelectorAll('.row-resizer').forEach(resizer => {
+        const row = parseInt(resizer.getAttribute('data-row'), 10);
+
+        resizer.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          this.setRowHeight(row, row === 1 ? 32 : this.defaultRowHeight);
+          this.render();
+        });
+
+        resizer.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const startY = e.clientY;
+          const startHeight = this.getRowHeight(row);
+
+          resizer.classList.add('is-resizing');
+          document.body.style.cursor = 'row-resize';
+          document.body.style.userSelect = 'none';
+
+          const onMouseMove = (moveEvent) => {
+            const delta = moveEvent.clientY - startY;
+            const newHeight = Math.max(22, Math.min(300, startHeight + delta));
+            this.rowHeights[row] = newHeight;
+            this.applyRowHeightDOM(row, newHeight);
+          };
+
+          const onMouseUp = () => {
+            resizer.classList.remove('is-resizing');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+          };
+
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
+        });
+      });
+
+      // 6. Download / Export Actions
       const btnDlExcel = this.container.querySelector('#spr_btn_dl_excel');
       if (btnDlExcel) {
         btnDlExcel.addEventListener('click', () => {
@@ -1880,7 +2188,7 @@
         });
       }
 
-      // 5. Color controls: Fill Color
+      // 7. Color controls: Fill Color
       const inputFill = this.container.querySelector('#spr_input_fill_color');
       if (inputFill) {
         inputFill.addEventListener('input', (e) => {
@@ -1895,7 +2203,7 @@
         });
       });
 
-      // 6. Color controls: Text Color
+      // 8. Color controls: Text Color
       const inputText = this.container.querySelector('#spr_input_text_color');
       if (inputText) {
         inputText.addEventListener('input', (e) => {
@@ -1910,7 +2218,7 @@
         });
       });
 
-      // 7. Presets
+      // 9. Presets
       this.container.querySelectorAll('.preset-chip').forEach(chip => {
         chip.addEventListener('click', () => {
           const preset = chip.getAttribute('data-preset');
@@ -1949,6 +2257,9 @@
       const btnSplit = this.container.querySelector('#spr_btn_split');
       if (btnSplit) btnSplit.classList.toggle('active', !!mergeInfo);
 
+      const btnWrap = this.container.querySelector('#spr_btn_wrap_text');
+      if (btnWrap) btnWrap.classList.toggle('active', !!cellData.wrapText);
+
       const fillIndicator = this.container.querySelector('#spr_fill_indicator');
       if (fillIndicator) fillIndicator.style.backgroundColor = cellData.bgColor || '#ffffff';
 
@@ -1960,7 +2271,7 @@
       this.container.querySelectorAll('.cell-input').forEach(td => {
         const ref = td.getAttribute('data-ref');
         const input = td.querySelector('.cell-editor');
-        const cell = this.data[ref] || { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'left' };
+        const cell = this.data[ref] || { raw: '', computed: '', bgColor: '', textColor: '', bold: false, italic: false, align: 'left', wrapText: false };
         
         // Update styles
         td.style.backgroundColor = cell.bgColor || '';
@@ -1968,6 +2279,8 @@
         td.style.fontWeight = cell.bold ? 'bold' : 'normal';
         td.style.fontStyle = cell.italic ? 'italic' : 'normal';
         td.style.textAlign = cell.align || 'left';
+        td.style.whiteSpace = cell.wrapText ? 'normal' : 'nowrap';
+        td.style.wordBreak = cell.wrapText ? 'break-word' : 'normal';
 
         if (input) {
           input.style.backgroundColor = cell.bgColor || 'transparent';
@@ -1975,10 +2288,12 @@
           input.style.fontWeight = cell.bold ? 'bold' : 'normal';
           input.style.fontStyle = cell.italic ? 'italic' : 'normal';
           input.style.textAlign = cell.align || 'left';
+          input.style.whiteSpace = cell.wrapText ? 'normal' : 'nowrap';
+          input.style.wordBreak = cell.wrapText ? 'break-word' : 'normal';
 
           if (document.activeElement !== input) {
-            input.value = cell.computed;
-            td.title = cell.raw && cell.raw.startsWith('=') ? cell.raw : ref;
+            input.value = cell.computed !== undefined ? cell.computed : '';
+            td.title = cell.raw && cell.raw.startsWith('=') ? cell.raw : (cell.computed !== undefined && cell.computed !== '' ? cell.computed : ref);
           }
         }
       });
