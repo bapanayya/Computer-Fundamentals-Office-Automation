@@ -1,6 +1,6 @@
 /**
  * Computer-Fund-OfficeAutomat-SVAGDC: Interactive Word Processor & Mail Merge Engine
- * Department of Physics, S.V.A. Govt. Degree College, Srikalahasti
+ * Department of Physics & Computer Science, S.V.A. Govt. Degree College, Srikalahasti
  */
 
 (function(window) {
@@ -194,6 +194,11 @@
       this.orientation = 'portrait';
       this.margins = 'normal';
       this.lineHeight = '1.5';
+      this.activeTableCell = null;
+      this.activeContentEl = null;
+      this.pendingImageDataUrl = null;
+      this.paginateTimer = null;
+      this.draggedImageContainer = null;
       this.init();
     }
 
@@ -213,7 +218,7 @@
           <div class="tool-card-header">
             <div class="tool-title-group">
               <span class="tool-badge"><i class="fa-solid fa-file-word"></i> ${isMailMerge ? 'Mail Merge Studio' : 'Word Processor Lab'}</span>
-              <span class="tool-title-text">${isMailMerge ? 'Dynamic Mail Merge & Document Automation Sandbox' : 'Live Interactive Rich-Text Word Processor'}</span>
+              <span class="tool-title-text">${isMailMerge ? 'Dynamic Mail Merge &amp; Document Automation Sandbox' : 'Live Interactive Rich-Text Word Processor (A4 Pages)'}</span>
             </div>
             <div class="tool-actions-group">
               <select class="wp-preset-select" id="wp_preset_select" title="Load Academic Template">
@@ -224,6 +229,7 @@
                 <option value="report" ${this.presetKey === 'report' ? 'selected' : ''}>📑 Seminar Abstract</option>
                 <option value="blank" ${this.presetKey === 'blank' ? 'selected' : ''}>📝 Blank Document</option>
               </select>
+              <button type="button" class="btn-tool-action" id="wp_btn_add_page" title="Insert New A4 Page Break"><i class="fa-regular fa-file"></i> + Page</button>
               <button type="button" class="btn-tool-action btn-success-accent" id="wp_btn_export_doc" title="Download as MS Word Document (.doc)"><i class="fa-solid fa-file-word"></i> Word (.doc)</button>
               <button type="button" class="btn-tool-action" id="wp_btn_export_txt" title="Download Plain Text (.txt)"><i class="fa-solid fa-file-lines"></i> Text (.txt)</button>
               <button type="button" class="btn-tool-action" id="wp_btn_copy" title="Copy Document HTML"><i class="fa-regular fa-copy"></i> Copy</button>
@@ -258,15 +264,28 @@
                   <option value="6">24 pt (Title)</option>
                 </select>
               </div>
-              <div class="wp-ribbon-row">
+              <div class="wp-ribbon-row" style="align-items: center; gap: 4px;">
                 <button type="button" class="wp-btn" data-cmd="bold" title="Bold (Ctrl+B)"><i class="fa-solid fa-bold"></i></button>
                 <button type="button" class="wp-btn" data-cmd="italic" title="Italic (Ctrl+I)"><i class="fa-solid fa-italic"></i></button>
                 <button type="button" class="wp-btn" data-cmd="underline" title="Underline (Ctrl+U)"><i class="fa-solid fa-underline"></i></button>
                 <button type="button" class="wp-btn" data-cmd="strikeThrough" title="Strikethrough"><i class="fa-solid fa-strikethrough"></i></button>
                 <button type="button" class="wp-btn" data-cmd="subscript" title="Subscript (X₂)"><i class="fa-solid fa-subscript"></i></button>
                 <button type="button" class="wp-btn" data-cmd="superscript" title="Superscript (X²)"><i class="fa-solid fa-superscript"></i></button>
-                <input type="color" id="wp_fore_color" class="wp-color-picker" value="#1e293b" title="Text Color">
-                <input type="color" id="wp_hilite_color" class="wp-color-picker" value="#fef08a" title="Highlight Color">
+
+                <!-- Distinct TC and HC Mobile Labels with Visual Color Swatches -->
+                <label class="wp-color-btn-wrapper" for="wp_fore_color" title="Text Color (TC)">
+                  <span class="wp-color-tag-tc">TC</span>
+                  <i class="fa-solid fa-font"></i>
+                  <span class="wp-color-indicator" id="wp_fore_indicator" style="background-color: #1e293b;"></span>
+                  <input type="color" id="wp_fore_color" class="wp-color-picker-hidden" value="#1e293b">
+                </label>
+
+                <label class="wp-color-btn-wrapper" for="wp_hilite_color" title="Highlight Color (HC)">
+                  <span class="wp-color-tag-hc">HC</span>
+                  <i class="fa-solid fa-highlighter"></i>
+                  <span class="wp-color-indicator" id="wp_hilite_indicator" style="background-color: #fef08a;"></span>
+                  <input type="color" id="wp_hilite_color" class="wp-color-picker-hidden" value="#fef08a">
+                </label>
               </div>
             </div>
 
@@ -295,19 +314,34 @@
 
             <!-- Page Layout Group -->
             <div class="wp-ribbon-group">
-              <span class="wp-group-label">Page Layout</span>
+              <span class="wp-group-label">Page Layout (A4)</span>
               <div class="wp-ribbon-row">
                 <select class="wp-select" id="wp_page_margins" title="Margins">
-                  <option value="normal" selected>Margins: Normal</option>
-                  <option value="narrow">Margins: Narrow</option>
+                  <option value="normal" selected>Margins: Normal (1 in)</option>
+                  <option value="narrow">Margins: Narrow (0.5 in)</option>
                   <option value="compact">Margins: Compact (0.25cm)</option>
                 </select>
               </div>
               <div class="wp-ribbon-row">
                 <select class="wp-select" id="wp_page_orientation" title="Orientation">
-                  <option value="portrait" selected>Portrait</option>
-                  <option value="landscape">Landscape</option>
+                  <option value="portrait" selected>A4 Portrait (210 &times; 297mm)</option>
+                  <option value="landscape">A4 Landscape (297 &times; 210mm)</option>
                 </select>
+              </div>
+            </div>
+
+            <!-- Table Tools Group -->
+            <div class="wp-ribbon-group">
+              <span class="wp-group-label">Table Tools</span>
+              <div class="wp-ribbon-row">
+                <button type="button" class="wp-btn wp-btn-text" id="wp_btn_insert_table" title="Insert New Table"><i class="fa-solid fa-table"></i> + Table</button>
+                <button type="button" class="wp-btn wp-btn-text" id="wp_btn_add_row" title="Add Row Below in Table"><i class="fa-solid fa-plus"></i> Row</button>
+                <button type="button" class="wp-btn wp-btn-text" id="wp_btn_add_col" title="Add Column Right in Table"><i class="fa-solid fa-plus"></i> Col</button>
+              </div>
+              <div class="wp-ribbon-row">
+                <button type="button" class="wp-btn wp-btn-text text-danger" id="wp_btn_del_row" title="Delete Selected Row"><i class="fa-solid fa-minus"></i> Row</button>
+                <button type="button" class="wp-btn wp-btn-text text-danger" id="wp_btn_del_col" title="Delete Selected Col"><i class="fa-solid fa-minus"></i> Col</button>
+                <button type="button" class="wp-btn wp-btn-text text-danger" id="wp_btn_del_table" title="Delete Table"><i class="fa-solid fa-trash"></i></button>
               </div>
             </div>
 
@@ -315,8 +349,7 @@
             <div class="wp-ribbon-group">
               <span class="wp-group-label">Insert &amp; Tools</span>
               <div class="wp-ribbon-row">
-                <button type="button" class="wp-btn wp-btn-text" id="wp_btn_insert_table" title="Insert Custom Table"><i class="fa-solid fa-table"></i> Table</button>
-                <button type="button" class="wp-btn wp-btn-text" id="wp_btn_insert_image" title="Insert Image / Diagram"><i class="fa-solid fa-image"></i> Image</button>
+                <button type="button" class="wp-btn wp-btn-text" id="wp_btn_open_img_modal" title="Upload Image from Phone Gallery or Folders"><i class="fa-solid fa-image"></i> Image</button>
                 <button type="button" class="wp-btn wp-btn-text" id="wp_btn_insert_callout" title="Insert Callout Card"><i class="fa-solid fa-circle-info"></i> Note</button>
               </div>
               <div class="wp-ribbon-row">
@@ -375,33 +408,88 @@
             <button type="button" class="wp-fr-close" id="wp_find_close" title="Close Find &amp; Replace">&times;</button>
           </div>
 
-          <!-- Document Workspace Wrapper -->
-          <div class="wp-workspace">
+          <!-- Floating Table Helper Bar -->
+          <div class="wp-table-floating-bar" id="wp_table_floating_bar">
+            <button type="button" class="wp-tbl-btn" id="wp_float_add_row" title="Add Row Below"><i class="fa-solid fa-plus"></i> Row</button>
+            <button type="button" class="wp-tbl-btn" id="wp_float_add_col" title="Add Column Right"><i class="fa-solid fa-plus"></i> Col</button>
+            <button type="button" class="wp-tbl-btn text-danger" id="wp_float_del_row" title="Delete Row"><i class="fa-solid fa-minus"></i> Row</button>
+            <button type="button" class="wp-tbl-btn text-danger" id="wp_float_del_col" title="Delete Col"><i class="fa-solid fa-minus"></i> Col</button>
+            <button type="button" class="wp-tbl-btn text-danger" id="wp_float_del_tbl" title="Delete Table"><i class="fa-solid fa-trash"></i></button>
+          </div>
+
+          <!-- Document Workspace Wrapper with A4 Multi-Page Container -->
+          <div class="wp-workspace" id="wp_workspace">
             <div class="wp-ruler-bar">
               <span class="ruler-mark">0</span><span class="ruler-mark">1</span><span class="ruler-mark">2</span>
               <span class="ruler-mark">3</span><span class="ruler-mark">4</span><span class="ruler-mark">5</span>
               <span class="ruler-mark">6</span><span class="ruler-mark">7</span><span class="ruler-mark">8</span>
             </div>
 
-            <!-- Page Canvas -->
-            <div class="wp-page-container" id="wp_page_container">
-              <div class="wp-paper-page" id="wp_editor_page" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true">
-                <!-- Injected via preset -->
-              </div>
+            <!-- Discrete A4 Pages Stream -->
+            <div class="wp-pages-container" id="wp_pages_container">
+              <!-- Rendered via JS -->
             </div>
           </div>
 
           <!-- Status Bar -->
           <div class="wp-status-bar">
             <div class="wp-status-left">
-              <span class="wp-status-item"><i class="fa-regular fa-file"></i> Page 1 of 1</span>
+              <span class="wp-status-item" id="wp_stat_pages"><i class="fa-regular fa-file"></i> Page 1 of 1</span>
               <span class="wp-status-item" id="wp_stat_words">Words: 0</span>
               <span class="wp-status-item" id="wp_stat_chars">Characters: 0</span>
               <span class="wp-status-item" id="wp_stat_read_time">Est. Read: 1 min</span>
             </div>
             <div class="wp-status-right">
               <span class="wp-status-item"><i class="fa-solid fa-check-double text-success"></i> Auto-saved locally</span>
-              <span class="wp-status-badge">100% Zoom</span>
+              <span class="wp-status-badge">A4 Sheet</span>
+            </div>
+          </div>
+
+          <!-- Insert Image Modal (Gallery / Folders & URL) -->
+          <div class="wp-dialog-modal" id="wp_image_modal" style="display: none;">
+            <div class="wp-dialog-content">
+              <div class="wp-dialog-header">
+                <h3><i class="fa-solid fa-image"></i> Insert Image / Diagram</h3>
+                <button type="button" class="wp-fr-close" id="wp_modal_img_close">&times;</button>
+              </div>
+              <div class="wp-dialog-body">
+                <!-- Option 1: Device / Gallery Upload -->
+                <div>
+                  <label style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary); display: block; margin-bottom: 6px;">
+                    <i class="fa-solid fa-folder-open text-primary"></i> 1. Choose from Gallery / Folders:
+                  </label>
+                  <div class="wp-upload-dropzone" id="wp_modal_dropzone">
+                    <i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.8rem; color: var(--primary); margin-bottom: 6px;"></i>
+                    <p style="margin: 0; font-size: 0.85rem; font-weight: 600;">Tap to select photo from Phone Gallery or Computer</p>
+                    <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: var(--text-muted);">Supports PNG, JPG, JPEG, GIF, WEBP, SVG</p>
+                    <input type="file" id="wp_modal_file_input" accept="image/*" style="display: none;">
+                    <img id="wp_modal_preview" class="wp-upload-preview" alt="Preview">
+                  </div>
+                </div>
+
+                <!-- Option 2: Web URL or Physics Diagrams -->
+                <div>
+                  <label style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary); display: block; margin-bottom: 6px;">
+                    <i class="fa-solid fa-globe text-primary"></i> 2. Or Enter Web Image URL:
+                  </label>
+                  <input type="text" class="wp-fr-input" id="wp_modal_url_input" placeholder="https://images.unsplash.com/..." style="width: 100%; box-sizing: border-box; padding: 0.4rem 0.6rem;">
+                  <div class="wp-sample-pills">
+                    <span class="wp-sample-pill" data-url="https://images.unsplash.com/photo-1507668077129-56e32842fceb?w=600&auto=format&fit=crop&q=80">🔬 Laser Diffraction</span>
+                    <span class="wp-sample-pill" data-url="https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&auto=format&fit=crop&q=80">🧪 Laboratory Setup</span>
+                    <span class="wp-sample-pill" data-url="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop&q=80">⚡ Semiconductor Physics</span>
+                  </div>
+                </div>
+
+                <!-- Caption Input -->
+                <div>
+                  <label style="font-weight: 600; font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">Figure Caption (Optional):</label>
+                  <input type="text" class="wp-fr-input" id="wp_modal_caption_input" placeholder="Figure: Experimental observation or diagram..." style="width: 100%; box-sizing: border-box;">
+                </div>
+              </div>
+              <div class="wp-dialog-footer">
+                <button type="button" class="wp-fr-btn" id="wp_modal_img_cancel">Cancel</button>
+                <button type="button" class="wp-fr-btn wp-btn-primary" id="wp_modal_img_insert"><i class="fa-solid fa-check"></i> Insert into Document</button>
+              </div>
             </div>
           </div>
 
@@ -422,17 +510,15 @@
     }
 
     bindEvents() {
-      const editor = this.container.querySelector('#wp_editor_page');
-      if (!editor) return;
-
       // Ribbon Command Buttons
       this.container.querySelectorAll('.wp-btn[data-cmd]').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.preventDefault();
           const cmd = btn.getAttribute('data-cmd');
+          this.ensureActiveFocus();
           document.execCommand(cmd, false, null);
-          editor.focus();
           this.updateStats();
+          this.schedulePagination();
         });
       });
 
@@ -440,9 +526,9 @@
       const blockSelect = this.container.querySelector('#wp_format_block');
       if (blockSelect) {
         blockSelect.addEventListener('change', () => {
-          const val = blockSelect.value;
-          document.execCommand('formatBlock', false, `<${val}>`);
-          editor.focus();
+          this.ensureActiveFocus();
+          document.execCommand('formatBlock', false, `<${blockSelect.value}>`);
+          this.schedulePagination();
         });
       }
 
@@ -450,8 +536,8 @@
       const fontSelect = this.container.querySelector('#wp_font_name');
       if (fontSelect) {
         fontSelect.addEventListener('change', () => {
+          this.ensureActiveFocus();
           document.execCommand('fontName', false, fontSelect.value);
-          editor.focus();
         });
       }
 
@@ -459,22 +545,30 @@
       const sizeSelect = this.container.querySelector('#wp_font_size');
       if (sizeSelect) {
         sizeSelect.addEventListener('change', () => {
+          this.ensureActiveFocus();
           document.execCommand('fontSize', false, sizeSelect.value);
-          editor.focus();
+          this.schedulePagination();
         });
       }
 
-      // Colors
+      // Text Color (TC)
       const foreColor = this.container.querySelector('#wp_fore_color');
+      const foreIndicator = this.container.querySelector('#wp_fore_indicator');
       if (foreColor) {
         foreColor.addEventListener('input', () => {
+          if (foreIndicator) foreIndicator.style.backgroundColor = foreColor.value;
+          this.ensureActiveFocus();
           document.execCommand('foreColor', false, foreColor.value);
         });
       }
 
+      // Highlight Color (HC)
       const hiliteColor = this.container.querySelector('#wp_hilite_color');
+      const hiliteIndicator = this.container.querySelector('#wp_hilite_indicator');
       if (hiliteColor) {
         hiliteColor.addEventListener('input', () => {
+          if (hiliteIndicator) hiliteIndicator.style.backgroundColor = hiliteColor.value;
+          this.ensureActiveFocus();
           document.execCommand('hiliteColor', false, hiliteColor.value);
         });
       }
@@ -503,19 +597,124 @@
         });
       }
 
-      // Insert Table
-      const btnTable = this.container.querySelector('#wp_btn_insert_table');
-      if (btnTable) {
-        btnTable.addEventListener('click', () => {
+      // Manual Add Page (+ Page Break)
+      const addPageBtn = this.container.querySelector('#wp_btn_add_page');
+      if (addPageBtn) {
+        addPageBtn.addEventListener('click', () => {
+          this.addPage('<p><br></p>');
+        });
+      }
+
+      // Table Tools in Ribbon
+      const btnInsertTable = this.container.querySelector('#wp_btn_insert_table');
+      if (btnInsertTable) {
+        btnInsertTable.addEventListener('click', () => {
           this.insertCustomTable();
         });
       }
 
-      // Insert Image / Diagram
-      const btnImage = this.container.querySelector('#wp_btn_insert_image');
-      if (btnImage) {
-        btnImage.addEventListener('click', () => {
-          this.insertImage();
+      const btnAddRow = this.container.querySelector('#wp_btn_add_row');
+      if (btnAddRow) btnAddRow.addEventListener('click', () => this.addRow());
+
+      const btnAddCol = this.container.querySelector('#wp_btn_add_col');
+      if (btnAddCol) btnAddCol.addEventListener('click', () => this.addCol());
+
+      const btnDelRow = this.container.querySelector('#wp_btn_del_row');
+      if (btnDelRow) btnDelRow.addEventListener('click', () => this.deleteRow());
+
+      const btnDelCol = this.container.querySelector('#wp_btn_del_col');
+      if (btnDelCol) btnDelCol.addEventListener('click', () => this.deleteCol());
+
+      const btnDelTable = this.container.querySelector('#wp_btn_del_table');
+      if (btnDelTable) btnDelTable.addEventListener('click', () => this.deleteTable());
+
+      // Floating Table Bar Actions
+      const floatAddRow = this.container.querySelector('#wp_float_add_row');
+      if (floatAddRow) floatAddRow.addEventListener('click', () => this.addRow());
+
+      const floatAddCol = this.container.querySelector('#wp_float_add_col');
+      if (floatAddCol) floatAddCol.addEventListener('click', () => this.addCol());
+
+      const floatDelRow = this.container.querySelector('#wp_float_del_row');
+      if (floatDelRow) floatDelRow.addEventListener('click', () => this.deleteRow());
+
+      const floatDelCol = this.container.querySelector('#wp_float_del_col');
+      if (floatDelCol) floatDelCol.addEventListener('click', () => this.deleteCol());
+
+      const floatDelTbl = this.container.querySelector('#wp_float_del_tbl');
+      if (floatDelTbl) floatDelTbl.addEventListener('click', () => this.deleteTable());
+
+      // Image Insertion Modal Open / Close
+      const openImgBtn = this.container.querySelector('#wp_btn_open_img_modal');
+      const imgModal = this.container.querySelector('#wp_image_modal');
+      const closeImgBtn = this.container.querySelector('#wp_modal_img_close');
+      const cancelImgBtn = this.container.querySelector('#wp_modal_img_cancel');
+      const insertImgBtn = this.container.querySelector('#wp_modal_img_insert');
+      const dropzone = this.container.querySelector('#wp_modal_dropzone');
+      const fileInput = this.container.querySelector('#wp_modal_file_input');
+      const previewImg = this.container.querySelector('#wp_modal_preview');
+      const urlInput = this.container.querySelector('#wp_modal_url_input');
+      const captionInput = this.container.querySelector('#wp_modal_caption_input');
+
+      if (openImgBtn && imgModal) {
+        openImgBtn.addEventListener('click', () => {
+          this.pendingImageDataUrl = null;
+          if (previewImg) { previewImg.src = ''; previewImg.style.display = 'none'; }
+          if (urlInput) urlInput.value = '';
+          if (captionInput) captionInput.value = '';
+          imgModal.style.display = 'flex';
+        });
+      }
+
+      const closeImageModal = () => {
+        if (imgModal) imgModal.style.display = 'none';
+      };
+      if (closeImgBtn) closeImgBtn.addEventListener('click', closeImageModal);
+      if (cancelImgBtn) cancelImgBtn.addEventListener('click', closeImageModal);
+
+      // Dropzone click triggers device file picker (Mobile gallery / PC folders)
+      if (dropzone && fileInput) {
+        dropzone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', () => {
+          if (fileInput.files && fileInput.files[0]) {
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              this.pendingImageDataUrl = ev.target.result;
+              if (previewImg) {
+                previewImg.src = ev.target.result;
+                previewImg.style.display = 'block';
+              }
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      }
+
+      // Sample Pills
+      this.container.querySelectorAll('.wp-sample-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          const sampleUrl = pill.getAttribute('data-url');
+          if (urlInput) urlInput.value = sampleUrl;
+          if (previewImg) {
+            previewImg.src = sampleUrl;
+            previewImg.style.display = 'block';
+          }
+          this.pendingImageDataUrl = sampleUrl;
+        });
+      });
+
+      // Insert image action
+      if (insertImgBtn) {
+        insertImgBtn.addEventListener('click', () => {
+          const finalSrc = this.pendingImageDataUrl || (urlInput ? urlInput.value.trim() : '');
+          if (!finalSrc) {
+            alert('Please select an image from your device or enter an image URL.');
+            return;
+          }
+          const caption = captionInput ? captionInput.value.trim() : '';
+          this.insertCustomImage(finalSrc, caption);
+          closeImageModal();
         });
       }
 
@@ -529,9 +728,10 @@
             </div>
             <p><br></p>
           `;
-          editor.focus();
+          this.ensureActiveFocus();
           document.execCommand('insertHTML', false, calloutHtml);
           this.updateStats();
+          this.schedulePagination();
         });
       }
 
@@ -598,13 +798,8 @@
         });
       }
 
-      if (findNextBtn) {
-        findNextBtn.addEventListener('click', () => this.findNext());
-      }
-
-      if (findPrevBtn) {
-        findPrevBtn.addEventListener('click', () => this.findPrev());
-      }
+      if (findNextBtn) findNextBtn.addEventListener('click', () => this.findNext());
+      if (findPrevBtn) findPrevBtn.addEventListener('click', () => this.findPrev());
 
       if (replaceBtn) {
         replaceBtn.addEventListener('click', () => {
@@ -620,14 +815,6 @@
         });
       }
 
-      // Keyboard Shortcut: Ctrl+F to open Find & Replace
-      editor.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
-          e.preventDefault();
-          this.toggleFindReplace();
-        }
-      });
-
       // Preset Selector
       const presetSelect = this.container.querySelector('#wp_preset_select');
       if (presetSelect) {
@@ -636,16 +823,12 @@
         });
       }
 
-      // Live Stats Update
-      editor.addEventListener('input', () => {
-        this.updateStats();
-      });
-
       // Copy Button
       const copyBtn = this.container.querySelector('#wp_btn_copy');
       if (copyBtn) {
         copyBtn.addEventListener('click', () => {
-          navigator.clipboard.writeText(editor.innerHTML).then(() => {
+          const fullHtml = this.getAllPagesHtml();
+          navigator.clipboard.writeText(fullHtml).then(() => {
             const orig = copyBtn.innerHTML;
             copyBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
             setTimeout(() => { copyBtn.innerHTML = orig; }, 1500);
@@ -657,26 +840,7 @@
       const printBtn = this.container.querySelector('#wp_btn_print');
       if (printBtn) {
         printBtn.addEventListener('click', () => {
-          const win = window.open('', '_blank');
-          win.document.write(`
-            <html>
-              <head>
-                <title>Printed Document - S.V.A. Govt. Degree College</title>
-                <style>
-                  body { font-family: 'Times New Roman', serif; padding: 40px; color: #111; line-height: 1.6; }
-                  table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-                  th, td { border: 1px solid #333; padding: 8px; text-align: left; }
-                  @media print { body { padding: 0; } }
-                </style>
-              </head>
-              <body>
-                ${editor.innerHTML}
-              </body>
-            </html>
-          `);
-          win.document.close();
-          win.focus();
-          win.print();
+          window.print();
         });
       }
 
@@ -688,9 +852,10 @@
           const val = fieldSelect.value;
           if (val) {
             const tokenHtml = `<span class="merge-token" style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 600; border: 1px dashed #0284c7;">${val}</span>&nbsp;`;
+            this.ensureActiveFocus();
             document.execCommand('insertHTML', false, tokenHtml);
-            editor.focus();
             this.updateStats();
+            this.schedulePagination();
           }
         });
       }
@@ -724,194 +889,393 @@
           this.isPreviewActive = !this.isPreviewActive;
           previewBtn.classList.toggle('active', this.isPreviewActive);
           if (this.isPreviewActive) {
-            this.savedTemplate = editor.innerHTML;
+            this.savedTemplate = this.getAllPagesHtml();
             this.renderPreview();
           } else {
-            if (this.savedTemplate) editor.innerHTML = this.savedTemplate;
+            if (this.savedTemplate) {
+              this.setAllPagesHtml(this.savedTemplate);
+            }
           }
           this.updateStats();
         });
       }
 
-      // Modal Close
+      // Modal Close for Mail Merge
       const modal = this.container.querySelector('#wp_merge_modal');
       const modalClose = this.container.querySelector('#wp_modal_close');
       if (modalClose && modal) {
         modalClose.addEventListener('click', () => { modal.style.display = 'none'; });
       }
-    }
 
-    loadPreset(key) {
-      const editor = this.container.querySelector('#wp_editor_page');
-      if (!editor) return;
-      const p = PRESETS[key] || PRESETS.leave_letter;
-      editor.innerHTML = p.content;
-      this.currentRecipientIdx = 0;
-      this.isPreviewActive = false;
-      const previewBtn = this.container.querySelector('#wp_btn_toggle_preview');
-      if (previewBtn) previewBtn.classList.remove('active');
-      this.updateRecordIndicator();
-      this.updateStats();
-    }
+      // Workspace Click Delegations (Tables, Images, Focus)
+      const pagesContainer = this.container.querySelector('#wp_pages_container');
+      if (pagesContainer) {
+        pagesContainer.addEventListener('click', (e) => {
+          // Table cell focus
+          const cell = e.target.closest('td, th');
+          if (cell) {
+            this.activeTableCell = cell;
+            this.showTableFloatingBar(cell);
+          } else if (!e.target.closest('#wp_table_floating_bar')) {
+            this.hideTableFloatingBar();
+          }
 
-    updateRecordIndicator() {
-      const indicator = this.container.querySelector('#wp_record_indicator');
-      if (indicator) {
-        indicator.textContent = `Record ${this.currentRecipientIdx + 1} / ${SAMPLE_RECIPIENTS.length}`;
-        const rec = SAMPLE_RECIPIENTS[this.currentRecipientIdx];
-        indicator.title = `${rec.name} (${rec.roll})`;
+          // Image selection
+          const imgContainer = e.target.closest('.wp-image-container');
+          if (imgContainer) {
+            this.container.querySelectorAll('.wp-image-container').forEach(c => c.classList.remove('active-selected'));
+            imgContainer.classList.add('active-selected');
+            this.activeImageContainer = imgContainer;
+          } else if (!e.target.closest('.wp-img-tool-btn')) {
+            this.container.querySelectorAll('.wp-image-container').forEach(c => c.classList.remove('active-selected'));
+            this.activeImageContainer = null;
+          }
+
+          // Page content focus tracking
+          const content = e.target.closest('.wp-page-content');
+          if (content) {
+            this.activeContentEl = content;
+            this.updateActivePageStat();
+          }
+        });
+
+        // Keyboard Shortcut: Ctrl+F to open Find & Replace
+        pagesContainer.addEventListener('keydown', (e) => {
+          if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+            e.preventDefault();
+            this.toggleFindReplace();
+          }
+        });
       }
     }
 
-    renderPreview() {
-      const editor = this.container.querySelector('#wp_editor_page');
-      if (!editor) return;
+    // ==========================================
+    // Multi-Page A4 Sheet Management & Pagination
+    // ==========================================
 
-      const template = this.savedTemplate || editor.innerHTML;
-      const rec = SAMPLE_RECIPIENTS[this.currentRecipientIdx];
+    createA4PageElement(pageNum = 1, initialHtml = '') {
+      const page = document.createElement('div');
+      page.className = 'wp-a4-page';
+      page.setAttribute('data-page-num', pageNum);
 
-      let merged = template
-        .replace(/«Student_Name»/g, `<strong>${rec.name}</strong>`)
-        .replace(/«Roll_No»/g, `<strong>${rec.roll}</strong>`)
-        .replace(/«Department»/g, `<strong>${rec.dept}</strong>`)
-        .replace(/«Marks»/g, `<strong>${rec.marks}</strong>`)
-        .replace(/«Result»/g, `<strong>${rec.result}</strong>`)
-        .replace(/«Grade»/g, `<strong>${rec.grade}</strong>`);
-
-      editor.innerHTML = merged;
-    }
-
-    updateStats() {
-      const editor = this.container.querySelector('#wp_editor_page');
-      if (!editor) return;
-
-      const text = editor.innerText || editor.textContent || '';
-      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-      const chars = text.length;
-      const readTime = Math.max(1, Math.ceil(words / 200));
-
-      const wEl = this.container.querySelector('#wp_stat_words');
-      const cEl = this.container.querySelector('#wp_stat_chars');
-      const rEl = this.container.querySelector('#wp_stat_read_time');
-
-      if (wEl) wEl.textContent = `Words: ${words}`;
-      if (cEl) cEl.textContent = `Characters: ${chars}`;
-      if (rEl) rEl.textContent = `Est. Read: ${readTime} min`;
-    }
-
-    setMargins(type) {
-      this.margins = type;
-      const pageContainer = this.container.querySelector('#wp_page_container');
-      if (!pageContainer) return;
-      pageContainer.classList.remove('margins-narrow', 'margins-compact');
-      if (type === 'narrow') {
-        pageContainer.classList.add('margins-narrow');
-      } else if (type === 'compact') {
-        pageContainer.classList.add('margins-compact');
-      }
-    }
-
-    setOrientation(type) {
-      this.orientation = type;
-      const pageContainer = this.container.querySelector('#wp_page_container');
-      if (!pageContainer) return;
-      if (type === 'landscape') {
-        pageContainer.classList.add('orientation-landscape');
-      } else {
-        pageContainer.classList.remove('orientation-landscape');
-      }
-    }
-
-    setLineHeight(val) {
-      this.lineHeight = val;
-      const editor = this.container.querySelector('#wp_editor_page');
-      if (editor) {
-        editor.style.lineHeight = val;
-      }
-    }
-
-    exportToWord() {
-      const editor = this.container.querySelector('#wp_editor_page');
-      if (!editor) return;
-      const orientation = this.orientation === 'landscape' ? 'landscape' : 'portrait';
-      const marginsCss = this.margins === 'compact' ? '0.25cm' : (this.margins === 'narrow' ? '1.27cm' : '2.54cm');
-      const htmlContent = `
-        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-        <head>
-          <meta charset='utf-8'>
-          <title>${this.presetKey || 'Document'}</title>
-          <!--[if gte mso 9]>
-          <xml>
-          <w:WordDocument>
-          <w:View>Print</w:View>
-          <w:Zoom>100</w:Zoom>
-          <w:DoNotOptimizeForBrowser/>
-          </w:WordDocument>
-          </xml>
-          <![endif]-->
-          <style>
-            @page Section1 {
-              size: ${orientation === 'landscape' ? '11in 8.5in' : '8.5in 11in'};
-              margin: ${marginsCss};
-              mso-page-orientation: ${orientation};
-            }
-            div.Section1 { page: Section1; }
-            body {
-              font-family: 'Times New Roman', serif;
-              font-size: 11pt;
-              line-height: ${this.lineHeight};
-              color: #1e293b;
-            }
-            table { width: 100%; border-collapse: collapse; margin: 12px 0; }
-            th, td { border: 1px solid #334155; padding: 6px 10px; font-size: 10pt; }
-            th { background-color: #f1f5f9; font-weight: bold; }
-            h1, h2, h3, h4 { color: #1e3a8a; }
-            p { margin: 6px 0; }
-          </style>
-        </head>
-        <body>
-          <div class="Section1">
-            ${editor.innerHTML}
-          </div>
-        </body>
-        </html>
+      page.innerHTML = `
+        <div class="wp-page-header-band">
+          <span><i class="fa-solid fa-graduation-cap"></i> S.V.A. Govt. Degree College &bull; Office Automation</span>
+          <span class="wp-page-num-indicator">Page ${pageNum}</span>
+        </div>
+        <div class="wp-page-content" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true">
+          ${initialHtml || '<p><br></p>'}
+        </div>
+        <div class="wp-page-footer-band">
+          <span>Department of Physics / Computer Science</span>
+          <span class="wp-page-orientation-indicator">A4 Sheet</span>
+        </div>
       `;
-      const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${this.presetKey || 'document'}_export.doc`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
 
-    exportToTxt() {
-      const editor = this.container.querySelector('#wp_editor_page');
-      if (!editor) return;
-      const text = editor.innerText || editor.textContent || '';
-      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${this.presetKey || 'document'}_export.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
+      const content = page.querySelector('.wp-page-content');
+      content.style.lineHeight = this.lineHeight;
 
-    clearDocument() {
-      const editor = this.container.querySelector('#wp_editor_page');
-      if (!editor) return;
-      if (confirm('Clear the current document and start with a blank page?')) {
-        editor.innerHTML = '<p><br></p>';
-        this.clearFindHighlights();
+      // Real-time input handling for pagination & stats
+      content.addEventListener('input', () => {
+        this.activeContentEl = content;
         this.updateStats();
-        editor.focus();
+        this.schedulePagination();
+      });
+
+      content.addEventListener('focus', () => {
+        this.activeContentEl = content;
+        this.updateActivePageStat();
+      });
+
+      // Drag over and drop for images
+      content.addEventListener('dragover', (e) => {
+        e.preventDefault();
+      });
+
+      content.addEventListener('drop', (e) => {
+        if (this.draggedImageContainer) {
+          e.preventDefault();
+          const target = e.target.closest('p, h1, h2, h3, h4, table, div');
+          if (target && target !== this.draggedImageContainer && content.contains(target)) {
+            content.insertBefore(this.draggedImageContainer, target);
+          } else {
+            content.appendChild(this.draggedImageContainer);
+          }
+          this.draggedImageContainer = null;
+          this.schedulePagination();
+        }
+      });
+
+      return page;
+    }
+
+    addPage(initialHtml = '') {
+      const pagesContainer = this.container.querySelector('#wp_pages_container');
+      if (!pagesContainer) return null;
+      const count = pagesContainer.querySelectorAll('.wp-a4-page').length;
+      const newPage = this.createA4PageElement(count + 1, initialHtml);
+      pagesContainer.appendChild(newPage);
+      this.updatePageNumbers();
+      const content = newPage.querySelector('.wp-page-content');
+      if (content) {
+        content.focus();
+        this.activeContentEl = content;
+      }
+      this.updateStats();
+      return newPage;
+    }
+
+    updatePageNumbers() {
+      const pages = this.container.querySelectorAll('.wp-a4-page');
+      pages.forEach((page, idx) => {
+        page.setAttribute('data-page-num', idx + 1);
+        const ind = page.querySelector('.wp-page-num-indicator');
+        if (ind) ind.textContent = `Page ${idx + 1} of ${pages.length}`;
+      });
+      this.updateActivePageStat();
+    }
+
+    updateActivePageStat() {
+      const pages = Array.from(this.container.querySelectorAll('.wp-a4-page'));
+      let currentIdx = 0;
+      if (this.activeContentEl) {
+        const parentPage = this.activeContentEl.closest('.wp-a4-page');
+        if (parentPage) {
+          currentIdx = pages.indexOf(parentPage);
+        }
+      }
+      const statPages = this.container.querySelector('#wp_stat_pages');
+      if (statPages) {
+        statPages.innerHTML = `<i class="fa-regular fa-file"></i> Page ${Math.max(1, currentIdx + 1)} of ${Math.max(1, pages.length)}`;
       }
     }
+
+    ensureActiveFocus() {
+      if (!this.activeContentEl || !this.container.contains(this.activeContentEl)) {
+        const first = this.container.querySelector('.wp-page-content');
+        if (first) {
+          this.activeContentEl = first;
+          first.focus();
+        }
+      } else {
+        this.activeContentEl.focus();
+      }
+    }
+
+    getMaxPageContentHeight() {
+      const isLandscape = this.orientation === 'landscape';
+      const totalH = isLandscape ? 794 : 1123;
+      let pad = 120;
+      if (this.margins === 'narrow') pad = 70;
+      if (this.margins === 'compact') pad = 28;
+      return totalH - pad - 60;
+    }
+
+    schedulePagination() {
+      if (this.paginateTimer) clearTimeout(this.paginateTimer);
+      this.paginateTimer = setTimeout(() => {
+        this.checkPagination();
+      }, 350);
+    }
+
+    checkPagination() {
+      const pagesContainer = this.container.querySelector('#wp_pages_container');
+      if (!pagesContainer) return;
+      const pages = pagesContainer.querySelectorAll('.wp-a4-page');
+      const maxH = this.getMaxPageContentHeight();
+
+      for (let i = 0; i < pages.length; i++) {
+        const page = pages[i];
+        const content = page.querySelector('.wp-page-content');
+        if (!content) continue;
+
+        if (content.scrollHeight > maxH + 15) {
+          const children = Array.from(content.children);
+          if (children.length <= 1) continue;
+
+          let splitIndex = -1;
+          for (let c = 0; c < children.length; c++) {
+            const child = children[c];
+            if (child.offsetTop + child.offsetHeight > maxH) {
+              splitIndex = c;
+              break;
+            }
+          }
+
+          if (splitIndex !== -1 && splitIndex < children.length) {
+            const overflowing = children.slice(splitIndex);
+            const frag = document.createDocumentFragment();
+            overflowing.forEach(node => frag.appendChild(node));
+
+            let nextPage = pages[i + 1];
+            if (!nextPage) {
+              nextPage = this.createA4PageElement(pages.length + 1, '');
+              pagesContainer.appendChild(nextPage);
+            }
+            const nextContent = nextPage.querySelector('.wp-page-content');
+            if (nextContent.firstChild) {
+              nextContent.insertBefore(frag, nextContent.firstChild);
+            } else {
+              nextContent.appendChild(frag);
+            }
+
+            this.updatePageNumbers();
+            this.checkPagination();
+            break;
+          }
+        }
+      }
+    }
+
+    // ==========================================
+    // Image Upload, Drag & Drop, and Resizing
+    // ==========================================
+
+    insertCustomImage(src, captionText = '') {
+      this.ensureActiveFocus();
+      const container = document.createElement('div');
+      container.className = 'wp-image-container active-selected';
+      container.setAttribute('contenteditable', 'false');
+      container.setAttribute('draggable', 'true');
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'wp-image-wrapper';
+
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = captionText || 'Uploaded Academic Visual';
+      img.className = 'wp-doc-image';
+      img.style.width = '340px';
+
+      const handle = document.createElement('div');
+      handle.className = 'wp-image-resize-handle';
+      handle.title = 'Drag corner to resize';
+
+      const toolbar = document.createElement('div');
+      toolbar.className = 'wp-image-floating-bar';
+      toolbar.innerHTML = `
+        <button type="button" class="wp-img-tool-btn" data-action="left" title="Align Left"><i class="fa-solid fa-align-left"></i></button>
+        <button type="button" class="wp-img-tool-btn" data-action="center" title="Center"><i class="fa-solid fa-align-center"></i></button>
+        <button type="button" class="wp-img-tool-btn" data-action="right" title="Align Right"><i class="fa-solid fa-align-right"></i></button>
+        <button type="button" class="wp-img-tool-btn" data-action="w25" title="25% width">25%</button>
+        <button type="button" class="wp-img-tool-btn" data-action="w50" title="50% width">50%</button>
+        <button type="button" class="wp-img-tool-btn" data-action="w75" title="75% width">75%</button>
+        <button type="button" class="wp-img-tool-btn" data-action="w100" title="100% width">100%</button>
+        <button type="button" class="wp-img-tool-btn" data-action="move-up" title="Move Up"><i class="fa-solid fa-arrow-up"></i></button>
+        <button type="button" class="wp-img-tool-btn" data-action="move-down" title="Move Down"><i class="fa-solid fa-arrow-down"></i></button>
+        <button type="button" class="wp-img-tool-btn btn-danger-tool" data-action="delete" title="Delete"><i class="fa-solid fa-trash"></i></button>
+      `;
+
+      wrapper.appendChild(img);
+      wrapper.appendChild(handle);
+      wrapper.appendChild(toolbar);
+      container.appendChild(wrapper);
+
+      const caption = document.createElement('p');
+      caption.className = 'wp-image-caption';
+      caption.setAttribute('contenteditable', 'true');
+      caption.textContent = captionText || 'Figure: Scientific visual illustration / Laboratory capture';
+      container.appendChild(caption);
+
+      this.bindImageInteractive(container, img, handle, toolbar);
+
+      // Insert into active page content
+      const targetContent = this.activeContentEl || this.container.querySelector('.wp-page-content');
+      if (targetContent) {
+        targetContent.appendChild(container);
+        const spacer = document.createElement('p');
+        spacer.innerHTML = '<br>';
+        targetContent.appendChild(spacer);
+      }
+
+      this.activeImageContainer = container;
+      this.updateStats();
+      this.schedulePagination();
+    }
+
+    bindImageInteractive(container, img, handle, toolbar) {
+      // Dragging repositioning
+      container.addEventListener('dragstart', (e) => {
+        this.draggedImageContainer = container;
+        e.dataTransfer.setData('text/plain', '');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+
+      // Corner resize dragging
+      const onResizeStart = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const startX = e.clientX || (e.touches && e.touches[0].clientX);
+        const startW = img.offsetWidth;
+
+        const onMove = (ev) => {
+          const curX = ev.clientX || (ev.touches && ev.touches[0].clientX);
+          if (!curX) return;
+          const diff = curX - startX;
+          const newW = Math.max(80, Math.min(680, startW + diff));
+          img.style.width = newW + 'px';
+        };
+
+        const onStop = () => {
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('mouseup', onStop);
+          window.removeEventListener('touchmove', onMove);
+          window.removeEventListener('touchend', onStop);
+          this.schedulePagination();
+        };
+
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onStop);
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('touchend', onStop);
+      };
+
+      handle.addEventListener('mousedown', onResizeStart);
+      handle.addEventListener('touchstart', onResizeStart, { passive: false });
+
+      // Floating toolbar actions
+      toolbar.querySelectorAll('.wp-img-tool-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const action = btn.getAttribute('data-action');
+          if (action === 'left') {
+            container.style.textAlign = 'left';
+            container.style.margin = '10px 0';
+          } else if (action === 'center') {
+            container.style.textAlign = 'center';
+            container.style.margin = '14px auto';
+          } else if (action === 'right') {
+            container.style.textAlign = 'right';
+            container.style.margin = '10px 0';
+          } else if (action === 'w25') {
+            img.style.width = '25%';
+          } else if (action === 'w50') {
+            img.style.width = '50%';
+          } else if (action === 'w75') {
+            img.style.width = '75%';
+          } else if (action === 'w100') {
+            img.style.width = '100%';
+          } else if (action === 'move-up') {
+            if (container.previousElementSibling) {
+              container.parentNode.insertBefore(container, container.previousElementSibling);
+            }
+          } else if (action === 'move-down') {
+            if (container.nextElementSibling) {
+              container.parentNode.insertBefore(container.nextElementSibling, container);
+            }
+          } else if (action === 'delete') {
+            container.remove();
+            this.activeImageContainer = null;
+          }
+          this.schedulePagination();
+          this.updateStats();
+        });
+      });
+    }
+
+    // ==========================================
+    // Table Tools: Insert, +Row, +Col, -Row, -Col
+    // ==========================================
 
     insertCustomTable() {
       const rowsInput = prompt('Enter number of rows (e.g. 2 to 10):', '3');
@@ -945,30 +1309,410 @@
         </table>
         <p><br></p>
       `;
-      const editor = this.container.querySelector('#wp_editor_page');
-      if (editor) editor.focus();
+      this.ensureActiveFocus();
       document.execCommand('insertHTML', false, tableHtml);
+      this.updateStats();
+      this.schedulePagination();
+    }
+
+    addRow() {
+      if (!this.activeTableCell) {
+        const table = this.container.querySelector('.wp-page-content table');
+        if (!table) return alert('Please click inside a table to add a row.');
+        const rows = table.querySelectorAll('tr');
+        if (rows.length) this.activeTableCell = rows[rows.length - 1].querySelector('td, th');
+      }
+      if (!this.activeTableCell) return;
+
+      const tr = this.activeTableCell.closest('tr');
+      const table = tr.closest('table');
+      const cols = tr.children.length;
+
+      const newTr = document.createElement('tr');
+      for (let i = 0; i < cols; i++) {
+        const td = document.createElement('td');
+        td.style.padding = '8px';
+        td.style.border = '1px solid #cbd5e1';
+        td.innerHTML = '<br>';
+        newTr.appendChild(td);
+      }
+
+      tr.parentNode.insertBefore(newTr, tr.nextSibling);
+      this.activeTableCell = newTr.children[0];
+      this.activeTableCell.focus();
+      this.showTableFloatingBar(this.activeTableCell);
+      this.schedulePagination();
       this.updateStats();
     }
 
-    insertImage() {
-      const url = prompt(
-        'Enter Image URL (or press OK to use sample Physics Optics diagram):',
-        'https://images.unsplash.com/photo-1507668077129-56e32842fceb?w=600&auto=format&fit=crop&q=80'
-      );
-      if (!url) return;
-      const imgHtml = `
-        <div style="text-align: center; margin: 14px 0;">
-          <img src="${url}" alt="Academic Diagram" style="max-width: 90%; height: auto; border-radius: 6px; box-shadow: 0 3px 10px rgba(0,0,0,0.15); border: 1px solid #cbd5e1;" />
-          <p style="font-size: 0.85rem; color: #64748b; margin-top: 4px; font-style: italic;">Figure: Experimental diagram / Scientific visual illustration</p>
-        </div>
-        <p><br></p>
-      `;
-      const editor = this.container.querySelector('#wp_editor_page');
-      if (editor) editor.focus();
-      document.execCommand('insertHTML', false, imgHtml);
+    addCol() {
+      if (!this.activeTableCell) {
+        const table = this.container.querySelector('.wp-page-content table');
+        if (!table) return alert('Please click inside a table to add a column.');
+        this.activeTableCell = table.querySelector('td, th');
+      }
+      if (!this.activeTableCell) return;
+
+      const tr = this.activeTableCell.closest('tr');
+      const table = tr.closest('table');
+      const colIdx = Array.from(tr.children).indexOf(this.activeTableCell);
+
+      const allRows = table.querySelectorAll('tr');
+      allRows.forEach(row => {
+        const isHeader = row.parentNode.tagName === 'THEAD';
+        const cell = document.createElement(isHeader ? 'th' : 'td');
+        cell.style.padding = '8px';
+        cell.style.border = '1px solid #cbd5e1';
+        if (isHeader) {
+          cell.style.background = '#f8fafc';
+          cell.textContent = `Col ${row.children.length + 1}`;
+        } else {
+          cell.innerHTML = '<br>';
+        }
+        if (colIdx >= 0 && colIdx < row.children.length) {
+          row.insertBefore(cell, row.children[colIdx].nextSibling);
+        } else {
+          row.appendChild(cell);
+        }
+      });
+
+      this.schedulePagination();
       this.updateStats();
     }
+
+    deleteRow() {
+      if (!this.activeTableCell) return;
+      const tr = this.activeTableCell.closest('tr');
+      const table = tr.closest('table');
+      const rows = table.querySelectorAll('tr');
+      if (rows.length <= 1) {
+        if (confirm('Delete the entire table?')) {
+          table.remove();
+          this.activeTableCell = null;
+          this.hideTableFloatingBar();
+        }
+      } else {
+        tr.remove();
+        this.activeTableCell = null;
+        this.hideTableFloatingBar();
+      }
+      this.schedulePagination();
+      this.updateStats();
+    }
+
+    deleteCol() {
+      if (!this.activeTableCell) return;
+      const tr = this.activeTableCell.closest('tr');
+      const table = tr.closest('table');
+      const colIdx = Array.from(tr.children).indexOf(this.activeTableCell);
+      if (tr.children.length <= 1) {
+        if (confirm('Delete the entire table?')) {
+          table.remove();
+          this.activeTableCell = null;
+          this.hideTableFloatingBar();
+        }
+      } else {
+        const allRows = table.querySelectorAll('tr');
+        allRows.forEach(row => {
+          if (row.children[colIdx]) row.children[colIdx].remove();
+        });
+        this.activeTableCell = null;
+        this.hideTableFloatingBar();
+      }
+      this.schedulePagination();
+      this.updateStats();
+    }
+
+    deleteTable() {
+      if (!this.activeTableCell) return;
+      const table = this.activeTableCell.closest('table');
+      if (table && confirm('Are you sure you want to delete this table?')) {
+        table.remove();
+        this.activeTableCell = null;
+        this.hideTableFloatingBar();
+        this.schedulePagination();
+        this.updateStats();
+      }
+    }
+
+    showTableFloatingBar(cell) {
+      const bar = this.container.querySelector('#wp_table_floating_bar');
+      if (!bar || !cell) return;
+      const rect = cell.getBoundingClientRect();
+      const containerRect = this.container.getBoundingClientRect();
+      bar.style.display = 'flex';
+      bar.style.top = `${rect.top - containerRect.top - 38}px`;
+      bar.style.left = `${rect.left - containerRect.left}px`;
+    }
+
+    hideTableFloatingBar() {
+      const bar = this.container.querySelector('#wp_table_floating_bar');
+      if (bar) bar.style.display = 'none';
+    }
+
+    // ==========================================
+    // Page Layout, Formatting & Preset Loader
+    // ==========================================
+
+    setMargins(type) {
+      this.margins = type;
+      const pagesContainer = this.container.querySelector('#wp_pages_container');
+      if (!pagesContainer) return;
+      pagesContainer.classList.remove('margins-narrow', 'margins-compact');
+      if (type === 'narrow') {
+        pagesContainer.classList.add('margins-narrow');
+      } else if (type === 'compact') {
+        pagesContainer.classList.add('margins-compact');
+      }
+      this.schedulePagination();
+    }
+
+    setOrientation(type) {
+      this.orientation = type;
+      const pagesContainer = this.container.querySelector('#wp_pages_container');
+      if (!pagesContainer) return;
+      if (type === 'landscape') {
+        pagesContainer.classList.add('orientation-landscape');
+      } else {
+        pagesContainer.classList.remove('orientation-landscape');
+      }
+      const ind = this.container.querySelectorAll('.wp-page-orientation-indicator');
+      ind.forEach(el => el.textContent = type === 'landscape' ? 'A4 Landscape' : 'A4 Portrait');
+      this.schedulePagination();
+    }
+
+    setLineHeight(val) {
+      this.lineHeight = val;
+      this.container.querySelectorAll('.wp-page-content').forEach(content => {
+        content.style.lineHeight = val;
+      });
+    }
+
+    loadPreset(key) {
+      const pagesContainer = this.container.querySelector('#wp_pages_container');
+      if (!pagesContainer) return;
+      pagesContainer.innerHTML = '';
+
+      const p = PRESETS[key] || PRESETS.leave_letter;
+      const page1 = this.createA4PageElement(1, p.content);
+      pagesContainer.appendChild(page1);
+
+      this.activeContentEl = page1.querySelector('.wp-page-content');
+      this.currentRecipientIdx = 0;
+      this.isPreviewActive = false;
+
+      const previewBtn = this.container.querySelector('#wp_btn_toggle_preview');
+      if (previewBtn) previewBtn.classList.remove('active');
+
+      this.updateRecordIndicator();
+      this.updatePageNumbers();
+      this.updateStats();
+
+      // Check if existing images need wrapping
+      page1.querySelectorAll('img:not(.wp-doc-image)').forEach(img => {
+        this.wrapExistingImage(img);
+      });
+
+      this.schedulePagination();
+    }
+
+    wrapExistingImage(img) {
+      const parent = img.parentNode;
+      const container = document.createElement('div');
+      container.className = 'wp-image-container';
+      container.setAttribute('contenteditable', 'false');
+      container.setAttribute('draggable', 'true');
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'wp-image-wrapper';
+
+      const handle = document.createElement('div');
+      handle.className = 'wp-image-resize-handle';
+      handle.title = 'Drag corner to resize';
+
+      const toolbar = document.createElement('div');
+      toolbar.className = 'wp-image-floating-bar';
+      toolbar.innerHTML = `
+        <button type="button" class="wp-img-tool-btn" data-action="left" title="Align Left"><i class="fa-solid fa-align-left"></i></button>
+        <button type="button" class="wp-img-tool-btn" data-action="center" title="Center"><i class="fa-solid fa-align-center"></i></button>
+        <button type="button" class="wp-img-tool-btn" data-action="right" title="Align Right"><i class="fa-solid fa-align-right"></i></button>
+        <button type="button" class="wp-img-tool-btn" data-action="w25" title="25% width">25%</button>
+        <button type="button" class="wp-img-tool-btn" data-action="w50" title="50% width">50%</button>
+        <button type="button" class="wp-img-tool-btn" data-action="w75" title="75% width">75%</button>
+        <button type="button" class="wp-img-tool-btn" data-action="w100" title="100% width">100%</button>
+        <button type="button" class="wp-img-tool-btn" data-action="move-up" title="Move Up"><i class="fa-solid fa-arrow-up"></i></button>
+        <button type="button" class="wp-img-tool-btn" data-action="move-down" title="Move Down"><i class="fa-solid fa-arrow-down"></i></button>
+        <button type="button" class="wp-img-tool-btn btn-danger-tool" data-action="delete" title="Delete"><i class="fa-solid fa-trash"></i></button>
+      `;
+
+      img.classList.add('wp-doc-image');
+      parent.insertBefore(container, img);
+      wrapper.appendChild(img);
+      wrapper.appendChild(handle);
+      wrapper.appendChild(toolbar);
+      container.appendChild(wrapper);
+
+      this.bindImageInteractive(container, img, handle, toolbar);
+    }
+
+    clearDocument() {
+      if (confirm('Clear entire document and start with a blank A4 sheet?')) {
+        const pagesContainer = this.container.querySelector('#wp_pages_container');
+        if (pagesContainer) {
+          pagesContainer.innerHTML = '';
+          const p1 = this.createA4PageElement(1, '<p><br></p>');
+          pagesContainer.appendChild(p1);
+          this.activeContentEl = p1.querySelector('.wp-page-content');
+          this.activeContentEl.focus();
+        }
+        this.clearFindHighlights();
+        this.hideTableFloatingBar();
+        this.updatePageNumbers();
+        this.updateStats();
+      }
+    }
+
+    getAllPagesHtml() {
+      const contents = this.container.querySelectorAll('.wp-page-content');
+      const htmls = [];
+      contents.forEach(c => htmls.push(c.innerHTML));
+      return htmls.join('<br clear="all" style="page-break-before:always; mso-break-type:section-break">');
+    }
+
+    setAllPagesHtml(html) {
+      const pagesContainer = this.container.querySelector('#wp_pages_container');
+      if (!pagesContainer) return;
+      pagesContainer.innerHTML = '';
+      const p1 = this.createA4PageElement(1, html);
+      pagesContainer.appendChild(p1);
+      this.activeContentEl = p1.querySelector('.wp-page-content');
+      this.updatePageNumbers();
+      this.schedulePagination();
+    }
+
+    exportToWord() {
+      const orientation = this.orientation === 'landscape' ? 'landscape' : 'portrait';
+      const marginsCss = this.margins === 'compact' ? '0.25cm' : (this.margins === 'narrow' ? '1.27cm' : '2.54cm');
+      const fullHtml = this.getAllPagesHtml();
+
+      const htmlContent = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset='utf-8'>
+          <title>${this.presetKey || 'Document'}</title>
+          <!--[if gte mso 9]>
+          <xml>
+          <w:WordDocument>
+          <w:View>Print</w:View>
+          <w:Zoom>100</w:Zoom>
+          <w:DoNotOptimizeForBrowser/>
+          </w:WordDocument>
+          </xml>
+          <![endif]-->
+          <style>
+            @page Section1 {
+              size: ${orientation === 'landscape' ? '11in 8.5in' : '8.5in 11in'};
+              margin: ${marginsCss};
+              mso-page-orientation: ${orientation};
+            }
+            div.Section1 { page: Section1; }
+            body {
+              font-family: 'Times New Roman', serif;
+              font-size: 11pt;
+              line-height: ${this.lineHeight};
+              color: #1e293b;
+            }
+            table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+            th, td { border: 1px solid #334155; padding: 6px 10px; font-size: 10pt; }
+            th { background-color: #f1f5f9; font-weight: bold; }
+            h1, h2, h3, h4 { color: #1e3a8a; }
+            p { margin: 6px 0; }
+            .wp-image-floating-bar, .wp-image-resize-handle { display: none !important; }
+          </style>
+        </head>
+        <body>
+          <div class="Section1">
+            ${fullHtml}
+          </div>
+        </body>
+        </html>
+      `;
+      const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${this.presetKey || 'document'}_export.doc`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    exportToTxt() {
+      const contents = this.container.querySelectorAll('.wp-page-content');
+      const texts = [];
+      contents.forEach((c, idx) => {
+        texts.push(`--- Page ${idx + 1} ---\n` + (c.innerText || c.textContent || ''));
+      });
+      const blob = new Blob([texts.join('\n\n')], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${this.presetKey || 'document'}_export.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    updateStats() {
+      let totalWords = 0;
+      let totalChars = 0;
+
+      this.container.querySelectorAll('.wp-page-content').forEach(content => {
+        const text = content.innerText || content.textContent || '';
+        totalWords += text.trim() ? text.trim().split(/\s+/).length : 0;
+        totalChars += text.length;
+      });
+
+      const readTime = Math.max(1, Math.ceil(totalWords / 200));
+
+      const wEl = this.container.querySelector('#wp_stat_words');
+      const cEl = this.container.querySelector('#wp_stat_chars');
+      const rEl = this.container.querySelector('#wp_stat_read_time');
+
+      if (wEl) wEl.textContent = `Words: ${totalWords}`;
+      if (cEl) cEl.textContent = `Characters: ${totalChars}`;
+      if (rEl) rEl.textContent = `Est. Read: ${readTime} min`;
+    }
+
+    updateRecordIndicator() {
+      const indicator = this.container.querySelector('#wp_record_indicator');
+      if (indicator) {
+        indicator.textContent = `Record ${this.currentRecipientIdx + 1} / ${SAMPLE_RECIPIENTS.length}`;
+        const rec = SAMPLE_RECIPIENTS[this.currentRecipientIdx];
+        indicator.title = `${rec.name} (${rec.roll})`;
+      }
+    }
+
+    renderPreview() {
+      const template = this.savedTemplate || this.getAllPagesHtml();
+      const rec = SAMPLE_RECIPIENTS[this.currentRecipientIdx];
+
+      const merged = template
+        .replace(/«Student_Name»/g, `<strong>${rec.name}</strong>`)
+        .replace(/«Roll_No»/g, `<strong>${rec.roll}</strong>`)
+        .replace(/«Department»/g, `<strong>${rec.dept}</strong>`)
+        .replace(/«Marks»/g, `<strong>${rec.marks}</strong>`)
+        .replace(/«Result»/g, `<strong>${rec.result}</strong>`)
+        .replace(/«Grade»/g, `<strong>${rec.grade}</strong>`);
+
+      this.setAllPagesHtml(merged);
+    }
+
+    // ==========================================
+    // Find & Replace System
+    // ==========================================
 
     toggleFindReplace() {
       const bar = this.container.querySelector('#wp_find_replace_bar');
@@ -988,17 +1732,13 @@
     }
 
     clearFindHighlights() {
-      const editor = this.container.querySelector('#wp_editor_page');
-      if (!editor) return;
-      const marks = editor.querySelectorAll('mark.wp-find-highlight');
+      const marks = this.container.querySelectorAll('mark.wp-find-highlight');
       marks.forEach(m => {
         const parent = m.parentNode;
-        while (m.firstChild) {
-          parent.insertBefore(m.firstChild, m);
-        }
+        while (m.firstChild) parent.insertBefore(m.firstChild, m);
         parent.removeChild(m);
       });
-      editor.normalize();
+      this.container.querySelectorAll('.wp-page-content').forEach(c => c.normalize());
       this.findMatchesList = [];
       this.currentMatchIndex = -1;
       this.updateFindCounter();
@@ -1007,46 +1747,46 @@
     highlightMatches(query) {
       this.clearFindHighlights();
       if (!query || query.trim() === '') return;
-      const editor = this.container.querySelector('#wp_editor_page');
-      if (!editor) return;
 
       const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(escaped, 'gi');
 
-      const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null, false);
-      const textNodes = [];
-      let node;
-      while ((node = walker.nextNode())) {
-        if (node.nodeValue && regex.test(node.nodeValue)) {
-          textNodes.push(node);
-        }
-      }
-
-      textNodes.forEach(textNode => {
-        const parent = textNode.parentNode;
-        if (parent && parent.nodeName === 'MARK') return;
-        const text = textNode.nodeValue;
-        const frag = document.createDocumentFragment();
-        let lastIdx = 0;
-        let match;
-        regex.lastIndex = 0;
-        while ((match = regex.exec(text)) !== null) {
-          if (match.index > lastIdx) {
-            frag.appendChild(document.createTextNode(text.substring(lastIdx, match.index)));
+      this.container.querySelectorAll('.wp-page-content').forEach(content => {
+        const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null, false);
+        const textNodes = [];
+        let node;
+        while ((node = walker.nextNode())) {
+          if (node.nodeValue && regex.test(node.nodeValue)) {
+            textNodes.push(node);
           }
-          const mark = document.createElement('mark');
-          mark.className = 'wp-find-highlight';
-          mark.textContent = match[0];
-          frag.appendChild(mark);
-          lastIdx = regex.lastIndex;
         }
-        if (lastIdx < text.length) {
-          frag.appendChild(document.createTextNode(text.substring(lastIdx)));
-        }
-        parent.replaceChild(frag, textNode);
+
+        textNodes.forEach(textNode => {
+          const parent = textNode.parentNode;
+          if (parent && parent.nodeName === 'MARK') return;
+          const text = textNode.nodeValue;
+          const frag = document.createDocumentFragment();
+          let lastIdx = 0;
+          let match;
+          regex.lastIndex = 0;
+          while ((match = regex.exec(text)) !== null) {
+            if (match.index > lastIdx) {
+              frag.appendChild(document.createTextNode(text.substring(lastIdx, match.index)));
+            }
+            const mark = document.createElement('mark');
+            mark.className = 'wp-find-highlight';
+            mark.textContent = match[0];
+            frag.appendChild(mark);
+            lastIdx = regex.lastIndex;
+          }
+          if (lastIdx < text.length) {
+            frag.appendChild(document.createTextNode(text.substring(lastIdx)));
+          }
+          parent.replaceChild(frag, textNode);
+        });
       });
 
-      this.findMatchesList = Array.from(editor.querySelectorAll('mark.wp-find-highlight'));
+      this.findMatchesList = Array.from(this.container.querySelectorAll('mark.wp-find-highlight'));
       this.currentMatchIndex = this.findMatchesList.length > 0 ? 0 : -1;
       this.focusCurrentMatch();
     }
@@ -1092,30 +1832,33 @@
       const query = input ? input.value : '';
       this.highlightMatches(query);
       this.updateStats();
+      this.schedulePagination();
     }
 
     replaceAll(query, replacement) {
       if (!query) return;
       this.clearFindHighlights();
-      const editor = this.container.querySelector('#wp_editor_page');
-      if (!editor) return;
       const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(escaped, 'gi');
 
-      const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null, false);
-      const textNodes = [];
-      let node;
-      while ((node = walker.nextNode())) {
-        if (node.nodeValue && regex.test(node.nodeValue)) {
-          textNodes.push(node);
+      this.container.querySelectorAll('.wp-page-content').forEach(content => {
+        const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null, false);
+        const textNodes = [];
+        let node;
+        while ((node = walker.nextNode())) {
+          if (node.nodeValue && regex.test(node.nodeValue)) {
+            textNodes.push(node);
+          }
         }
-      }
-      textNodes.forEach(tn => {
-        tn.nodeValue = tn.nodeValue.replace(regex, replacement || '');
+        textNodes.forEach(tn => {
+          tn.nodeValue = tn.nodeValue.replace(regex, replacement || '');
+        });
+        content.normalize();
       });
-      editor.normalize();
+
       this.updateStats();
       this.highlightMatches(query);
+      this.schedulePagination();
     }
   }
 
