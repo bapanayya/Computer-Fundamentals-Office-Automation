@@ -1413,19 +1413,57 @@ mark.wp-find-highlight.current {
 /* Resizable & Draggable Image Styles */
 .wp-image-container {
   position: relative;
-  display: block;
-  text-align: center;
-  margin: 14px auto;
-  max-width: 100%;
-  cursor: move;
+  display: inline-block;
   user-select: none;
-  border: 1px dashed transparent;
-  transition: border-color 0.15s ease;
+  border: none !important;
+  outline: none !important;
+  margin: 8px auto;
+  max-width: 100%;
+  vertical-align: middle;
+  cursor: move;
+  transition: box-shadow 0.15s ease;
 }
 
-.wp-image-container.active-selected {
-  border-color: #2563eb;
-  border-radius: 6px;
+/* Free Floating / Over Text Placement */
+.wp-image-container.wp-image-floating {
+  position: absolute !important;
+  z-index: 50;
+  margin: 0 !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
+}
+
+/* Passport Size Photo Preset (Top-Right Corner) */
+.wp-image-container.wp-image-passport {
+  position: absolute !important;
+  top: 45px;
+  right: 50px;
+  width: 115px !important;
+  z-index: 60;
+  margin: 0 !important;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25);
+  border: 1px solid #94a3b8 !important;
+}
+
+.wp-image-container.wp-image-passport .wp-doc-image {
+  width: 100% !important;
+  height: 140px !important;
+  object-fit: cover !important;
+}
+
+/* Text Wrapping Presets */
+.wp-image-container.wp-image-wrap-right {
+  float: right;
+  margin: 0 0 14px 20px !important;
+}
+
+.wp-image-container.wp-image-wrap-left {
+  float: left;
+  margin: 0 20px 14px 0 !important;
+}
+
+.wp-image-container.active-selected .wp-doc-image {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
 }
 
 .wp-image-wrapper {
@@ -1451,12 +1489,12 @@ mark.wp-find-highlight.current {
   transform: translateX(-50%);
   display: none;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   background: #1e293b;
   padding: 4px 8px;
   border-radius: 6px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-  z-index: 100;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  z-index: 200;
   white-space: nowrap;
 }
 
@@ -1468,7 +1506,7 @@ mark.wp-find-highlight.current {
   background: #334155;
   border: 1px solid #475569;
   color: #f8fafc;
-  padding: 3px 7px;
+  padding: 3px 6px;
   font-size: 0.72rem;
   font-weight: 600;
   border-radius: 3px;
@@ -1485,6 +1523,359 @@ mark.wp-find-highlight.current {
 .wp-img-tool-btn.btn-danger-tool:hover {
   background: #dc2626;
   border-color: #ef4444;
+}
+
+.wp-page-close-btn {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 0.82rem;
+  padding: 1px 5px;
+  border-radius: 3px;
+  transition: all 0.15s ease;
+}
+.wp-page-close-btn:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Dual Rulers: Horizontal & Vertical */
+.wp-workspace-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.wp-ruler-top-row {
+  display: flex;
+  align-items: stretch;
+  margin-bottom: 0;
+}
+
+.wp-ruler-corner {
+  width: 24px;
+  height: 24px;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  color: #64748b;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] .wp-ruler-corner {
+  background: #1e293b;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.wp-ruler-horizontal {
+  height: 24px;
+  width: 794px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-left: 0;
+  position: relative;
+  user-select: none;
+  overflow: hidden;
+  box-sizing: border-box;
+  display: flex;
+}
+
+[data-theme="dark"] .wp-ruler-horizontal {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.wp-workspace-main-row {
+  display: flex;
+  align-items: flex-start;
+}
+
+.wp-ruler-vertical {
+  width: 24px;
+  height: 1123px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-top: 0;
+  position: relative;
+  user-select: none;
+  overflow: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme="dark"] .wp-ruler-vertical {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.wp-workspace.orientation-landscape .wp-ruler-horizontal {
+  width: 1123px;
+}
+
+.wp-workspace.orientation-landscape .wp-ruler-vertical {
+  height: 794px;
+}
+
+.ruler-tick-h {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  background: #94a3b8;
+}
+.ruler-tick-h.major {
+  height: 14px;
+}
+.ruler-tick-h.sub {
+  height: 7px;
+}
+.ruler-num-h {
+  position: absolute;
+  top: 1px;
+  font-size: 0.62rem;
+  color: #475569;
+  font-family: var(--font-mono);
+  transform: translateX(-50%);
+}
+[data-theme="dark"] .ruler-num-h {
+  color: #94a3b8;
+}
+
+.ruler-tick-v {
+  position: absolute;
+  right: 0;
+  height: 1px;
+  background: #94a3b8;
+}
+.ruler-tick-v.major {
+  width: 14px;
+}
+.ruler-tick-v.sub {
+  width: 7px;
+}
+.ruler-num-v {
+  position: absolute;
+  left: 2px;
+  font-size: 0.62rem;
+  color: #475569;
+  font-family: var(--font-mono);
+  transform: translateY(-50%);
+}
+[data-theme="dark"] .ruler-num-v {
+  color: #94a3b8;
+}
+
+/* Shaded Margins on Rulers */
+.wp-ruler-margin-zone {
+  position: absolute;
+  background: rgba(100, 116, 139, 0.18);
+  pointer-events: none;
+}
+[data-theme="dark"] .wp-ruler-margin-zone {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Presentation Studio: Draggable, Resizable & Floating Images */
+.ppt-slide-canvas {
+  position: relative;
+  overflow: hidden;
+}
+
+.ppt-slide-img-container {
+  position: absolute;
+  cursor: move;
+  user-select: none;
+  z-index: 30;
+  display: inline-block;
+  border-radius: 4px;
+}
+
+.ppt-slide-img-container.active-selected .ppt-slide-img {
+  outline: 2px solid #38bdf8;
+  outline-offset: 1px;
+}
+
+.ppt-slide-img {
+  display: block;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+  max-width: 100%;
+}
+
+.ppt-img-resize-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #38bdf8;
+  border: 2px solid #ffffff;
+  border-radius: 2px;
+  bottom: -4px;
+  right: -4px;
+  cursor: nwse-resize;
+  display: none;
+  z-index: 40;
+}
+
+.ppt-slide-img-container.active-selected .ppt-img-resize-handle {
+  display: block;
+}
+
+.ppt-image-floating-bar {
+  position: absolute;
+  top: -38px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  align-items: center;
+  gap: 3px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(6px);
+  padding: 3px 6px;
+  border-radius: 5px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  white-space: nowrap;
+}
+
+.ppt-slide-img-container.active-selected .ppt-image-floating-bar {
+  display: flex;
+}
+
+.ppt-img-tool-btn {
+  background: rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+  border: none;
+  padding: 2px 6px;
+  font-size: 0.72rem;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.ppt-img-tool-btn:hover {
+  background: #38bdf8;
+  color: #0f172a;
+}
+.ppt-img-tool-btn.btn-danger:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+/* Passport Photo / Badge preset docked top-right over text */
+.ppt-image-passport {
+  top: 20px !important;
+  right: 20px !important;
+  left: auto !important;
+  width: 115px !important;
+  height: auto !important;
+}
+.ppt-image-passport .ppt-slide-img {
+  width: 115px !important;
+  height: 140px !important;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  border-radius: 4px;
+}
+
+/* Presentation Canvas Stage Frame with Horizontal and Vertical Rulers */
+.ppt-stage-outer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 710px;
+  margin: 0 auto;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.ppt-ruler-top-row {
+  display: flex;
+  height: 18px;
+  background: #0f172a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  user-select: none;
+}
+
+.ppt-ruler-corner {
+  width: 18px;
+  height: 18px;
+  background: #1e293b;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.ppt-ruler-h {
+  flex: 1;
+  height: 18px;
+  position: relative;
+  background: #0f172a;
+  overflow: hidden;
+}
+
+.ppt-stage-main-row {
+  display: flex;
+  flex: 1;
+  position: relative;
+  background: #0f172a;
+}
+
+.ppt-ruler-v {
+  width: 18px;
+  position: relative;
+  background: #0f172a;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+  user-select: none;
+  overflow: hidden;
+}
+
+.ppt-ruler-tick-h {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.ppt-ruler-num-h {
+  position: absolute;
+  top: 1px;
+  font-family: var(--font-mono, monospace);
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.55);
+  transform: translateX(-50%);
+  line-height: 1;
+}
+
+.ppt-ruler-tick-v {
+  position: absolute;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.ppt-ruler-num-v {
+  position: absolute;
+  left: 2px;
+  font-family: var(--font-mono, monospace);
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.55);
+  transform: translateY(-50%);
+  line-height: 1;
 }
 
 /* Corner Drag-to-Resize Handle */
@@ -1561,8 +1952,8 @@ mark.wp-find-highlight.current {
   background: rgba(37, 99, 235, 0.05);
 }
 
-/* Insert Image Modal */
-.wp-dialog-modal {
+/* Insert Image Modal for Word Processor & Presentation Studio */
+.wp-dialog-modal, .ppt-dialog-modal {
   position: fixed;
   top: 0;
   left: 0;
@@ -1577,7 +1968,7 @@ mark.wp-find-highlight.current {
   animation: fadeIn 0.2s ease;
 }
 
-.wp-dialog-content {
+.wp-dialog-content, .ppt-dialog-content {
   background: var(--bg-surface);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
@@ -1589,7 +1980,7 @@ mark.wp-find-highlight.current {
   flex-direction: column;
 }
 
-.wp-dialog-header {
+.wp-dialog-header, .ppt-dialog-header {
   padding: 0.85rem 1.25rem;
   background: var(--bg-sidebar);
   border-bottom: 1px solid var(--border-subtle);
@@ -1598,7 +1989,7 @@ mark.wp-find-highlight.current {
   justify-content: space-between;
 }
 
-.wp-dialog-header h3 {
+.wp-dialog-header h3, .ppt-dialog-header h3 {
   margin: 0;
   font-size: 0.96rem;
   font-weight: 700;
@@ -1608,14 +1999,14 @@ mark.wp-find-highlight.current {
   gap: 0.5rem;
 }
 
-.wp-dialog-body {
+.wp-dialog-body, .ppt-dialog-body {
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.wp-dialog-footer {
+.wp-dialog-footer, .ppt-dialog-footer {
   padding: 0.75rem 1.25rem;
   background: var(--bg-sidebar);
   border-top: 1px solid var(--border-subtle);

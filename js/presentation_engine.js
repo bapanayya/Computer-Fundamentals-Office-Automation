@@ -1,6 +1,6 @@
 /**
  * Computer-Fund-OfficeAutomat-SVAGDC: Interactive Presentation Studio & Slide Deck Player
- * Department of Physics & Computer Science, S.V.A. Govt. Degree College, Srikalahasti
+ * Department of Physics, S.V.A. Govt. Degree College, Srikalahasti
  */
 
 (function(window) {
@@ -114,7 +114,7 @@
         layout: 'title',
         title: 'OFFICE AUTOMATION & IT SUITE',
         subtitle: 'Comprehensive Workflow: Word Processing, Spreadsheets & Slide Decks',
-        meta: 'Department of Computer Science & Physics &bull; S.V.A. Govt. Degree College',
+        meta: 'Department of Physics &bull; S.V.A. Govt. Degree College, Srikalahasti',
         notes: 'Introduce the core objective: digital office efficiency and automation standards.'
       },
       {
@@ -269,10 +269,19 @@ Your secured score in Physics is «Marks» («Result»).`,
               <!-- Rendered via JS -->
             </div>
 
-            <!-- Central Slide Stage -->
+            <!-- Central Slide Stage with Dual Alignment Rulers -->
             <div class="ppt-stage-wrapper">
-              <div class="ppt-slide-canvas" id="ppt_slide_canvas" role="region" aria-label="Slide Canvas">
-                <!-- Active Slide Injected Here -->
+              <div class="ppt-stage-outer">
+                <div class="ppt-ruler-top-row">
+                  <div class="ppt-ruler-corner" title="Slide Ruler Scale (Inches)"><i class="fa-solid fa-ruler-combined"></i></div>
+                  <div class="ppt-ruler-h" id="ppt_ruler_h"></div>
+                </div>
+                <div class="ppt-stage-main-row">
+                  <div class="ppt-ruler-v" id="ppt_ruler_v"></div>
+                  <div class="ppt-slide-canvas" id="ppt_slide_canvas" role="region" aria-label="Slide Canvas">
+                    <!-- Active Slide Content + Floating Images Injected Here -->
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -303,6 +312,62 @@ Your secured score in Physics is «Marks» («Result»).`,
               <button type="button" class="ppt-show-btn" id="ppt_show_laser" title="Toggle Laser Pointer"><i class="fa-solid fa-bullseye"></i> Laser</button>
               <button type="button" class="ppt-show-btn" id="ppt_show_notes_toggle" title="Toggle Presenter Notes"><i class="fa-regular fa-note-sticky"></i> Notes</button>
               <button type="button" class="ppt-show-btn ppt-show-close" id="ppt_show_close" title="Exit Show (Esc)"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+          </div>
+
+          <!-- Image Insertion Dialog Modal -->
+          <div class="ppt-dialog-modal" id="ppt_image_modal" style="display: none;">
+            <div class="ppt-dialog-content">
+              <div class="ppt-dialog-header">
+                <h3><i class="fa-solid fa-image"></i> Insert Image / Scientific Diagram</h3>
+                <button type="button" class="wp-dialog-close" id="ppt_modal_close_btn" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+              </div>
+              <div class="ppt-dialog-body">
+                <div class="wp-modal-tabs" style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+                  <button type="button" class="wp-tab-btn active" id="ppt_tab_device" style="padding: 5px 12px; font-size: 0.82rem; border-radius: 4px; border: 1px solid #38bdf8; background: rgba(56,189,248,0.12); color: #38bdf8; cursor: pointer; font-weight: 600;"><i class="fa-solid fa-folder-open"></i> From Device / Gallery</button>
+                  <button type="button" class="wp-tab-btn" id="ppt_tab_web" style="padding: 5px 12px; font-size: 0.82rem; border-radius: 4px; border: 1px solid var(--border-medium); background: transparent; color: var(--text-secondary); cursor: pointer;"><i class="fa-solid fa-globe"></i> Web URL / Physics Samples</button>
+                </div>
+
+                <!-- Device upload tab -->
+                <div id="ppt_panel_device">
+                  <div class="wp-upload-dropzone" id="ppt_upload_dropzone">
+                    <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; color: #38bdf8; margin-bottom: 6px;"></i>
+                    <p style="margin: 0; font-size: 0.9rem; font-weight: 600;">Click or Drag &amp; Drop Image Here</p>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">Supports PNG, JPG, JPEG, SVG, WebP from Phone / PC</span>
+                    <input type="file" id="ppt_modal_file_input" accept="image/*" style="display: none;">
+                    <img id="ppt_modal_preview" class="wp-upload-preview" alt="Preview">
+                  </div>
+                </div>
+
+                <!-- Web URL tab -->
+                <div id="ppt_panel_web" style="display: none;">
+                  <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 4px;">Image Web URL:</label>
+                  <input type="text" class="wp-fr-input" id="ppt_modal_url_input" placeholder="https://images.unsplash.com/..." style="width: 100%; box-sizing: border-box; padding: 0.45rem 0.6rem; border: 1px solid var(--border-medium); border-radius: 4px; background: var(--bg-surface); color: var(--text-primary); font-size: 0.85rem;">
+                  <div style="margin-top: 10px;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Physics Sample Diagrams:</span>
+                    <div class="wp-sample-pills">
+                      <span class="wp-sample-pill ppt-sample-pill" data-url="https://images.unsplash.com/photo-1507668077129-56e32842fceb?w=600&auto=format&fit=crop&q=80">🔬 Laser Diffraction</span>
+                      <span class="wp-sample-pill ppt-sample-pill" data-url="https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&auto=format&fit=crop&q=80">🧪 Optics Bench</span>
+                      <span class="wp-sample-pill ppt-sample-pill" data-url="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop&q=80">⚡ Semiconductor Bandgap</span>
+                      <span class="wp-sample-pill ppt-sample-pill" data-url="https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=80">⚛️ Microchip Architecture</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Initial Placement Options -->
+                <div>
+                  <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 4px;">Initial Slide Placement:</label>
+                  <select id="ppt_modal_placement" style="width: 100%; padding: 0.45rem 0.6rem; border-radius: 4px; border: 1px solid var(--border-medium); background: var(--bg-surface); color: var(--text-primary); font-size: 0.85rem;">
+                    <option value="passport">📷 Top-Right Passport / Badge (Docked Over Text)</option>
+                    <option value="center">■ Center Floating (Freely Draggable)</option>
+                    <option value="bottom_right">↘ Bottom-Right Corner</option>
+                  </select>
+                </div>
+              </div>
+              <div class="ppt-dialog-footer">
+                <button type="button" class="btn-tool-action" id="ppt_modal_cancel_btn">Cancel</button>
+                <button type="button" class="btn-tool-action btn-primary-accent" id="ppt_modal_insert_btn"><i class="fa-solid fa-check"></i> Insert into Slide</button>
+              </div>
             </div>
           </div>
         </div>
@@ -390,7 +455,7 @@ Your secured score in Physics is «Marks» («Result»).`,
       const insertImageBtn = this.container.querySelector('#ppt_btn_insert_image');
       if (insertImageBtn) {
         insertImageBtn.addEventListener('click', () => {
-          this.insertSlideImage();
+          this.openImageModal();
         });
       }
 
@@ -671,6 +736,9 @@ Your secured score in Physics is «Marks» («Result»).`,
           notesContent.innerText = this.slides[this.currentIdx].notes || 'No presenter notes for this slide.';
         }
       }
+
+      // Bind Insert Image Modal (Gallery / Camera / Web URL)
+      this.bindImageModal();
     }
 
     moveSlideUp(idx) {
@@ -702,79 +770,215 @@ Your secured score in Physics is «Marks» («Result»).`,
       }
     }
 
-    insertSlideImage() {
-      const s = this.slides[this.currentIdx];
-      const url = prompt(
-        'Enter image URL to embed in this slide:',
-        'https://images.unsplash.com/photo-1507668077129-56e32842fceb?w=600&auto=format&fit=crop&q=80'
-      );
-      if (url) {
-        s.customContent = `
-          <div style="text-align: center; margin: 12px 0;">
-            <img src="${url}" alt="Slide Visual" style="max-height: 220px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.4);" />
-            <p style="font-size: 0.85rem; opacity: 0.8; margin-top: 6px;">Figure: Scientific observation / Diagrammatic model</p>
-          </div>
-        `;
-        s.layout = 'blank';
-        this.updateSlideView();
+    openImageModal() {
+      const modal = this.container.querySelector('#ppt_image_modal');
+      if (modal) {
+        modal.style.display = 'flex';
       }
     }
 
-    updateSlideView() {
-      this.renderThumbnails();
-      this.renderActiveSlide();
-      this.updateControls();
+    bindImageModal() {
+      const modal = this.container.querySelector('#ppt_image_modal');
+      const closeBtn = this.container.querySelector('#ppt_modal_close_btn');
+      const cancelBtn = this.container.querySelector('#ppt_modal_cancel_btn');
+      const insertBtn = this.container.querySelector('#ppt_modal_insert_btn');
+      const tabDevice = this.container.querySelector('#ppt_tab_device');
+      const tabWeb = this.container.querySelector('#ppt_tab_web');
+      const panelDevice = this.container.querySelector('#ppt_panel_device');
+      const panelWeb = this.container.querySelector('#ppt_panel_web');
+      const dropzone = this.container.querySelector('#ppt_upload_dropzone');
+      const fileInput = this.container.querySelector('#ppt_modal_file_input');
+      const preview = this.container.querySelector('#ppt_modal_preview');
+      const urlInput = this.container.querySelector('#ppt_modal_url_input');
+      const placementSelect = this.container.querySelector('#ppt_modal_placement');
+
+      const closeModal = () => {
+        if (modal) modal.style.display = 'none';
+        this.pendingImageSrc = null;
+        if (preview) { preview.src = ''; preview.style.display = 'none'; }
+        if (urlInput) urlInput.value = '';
+        if (fileInput) fileInput.value = '';
+      };
+
+      if (closeBtn) closeBtn.addEventListener('click', closeModal);
+      if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+      // Tabs
+      if (tabDevice && tabWeb) {
+        tabDevice.addEventListener('click', () => {
+          tabDevice.classList.add('active');
+          tabDevice.style.borderColor = '#38bdf8';
+          tabDevice.style.background = 'rgba(56,189,248,0.12)';
+          tabDevice.style.color = '#38bdf8';
+          tabWeb.classList.remove('active');
+          tabWeb.style.borderColor = 'var(--border-medium)';
+          tabWeb.style.background = 'transparent';
+          tabWeb.style.color = 'var(--text-secondary)';
+          if (panelDevice) panelDevice.style.display = 'block';
+          if (panelWeb) panelWeb.style.display = 'none';
+        });
+
+        tabWeb.addEventListener('click', () => {
+          tabWeb.classList.add('active');
+          tabWeb.style.borderColor = '#38bdf8';
+          tabWeb.style.background = 'rgba(56,189,248,0.12)';
+          tabWeb.style.color = '#38bdf8';
+          tabDevice.classList.remove('active');
+          tabDevice.style.borderColor = 'var(--border-medium)';
+          tabDevice.style.background = 'transparent';
+          tabDevice.style.color = 'var(--text-secondary)';
+          if (panelWeb) panelWeb.style.display = 'block';
+          if (panelDevice) panelDevice.style.display = 'none';
+        });
+      }
+
+      // Dropzone & File Input
+      const handleFile = (file) => {
+        if (!file.type.startsWith('image/')) {
+          alert('Please select a valid image file (PNG, JPG, SVG, WebP).');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          this.pendingImageSrc = e.target.result;
+          if (preview) {
+            preview.src = this.pendingImageSrc;
+            preview.style.display = 'block';
+          }
+        };
+        reader.readAsDataURL(file);
+      };
+
+      if (dropzone && fileInput) {
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          dropzone.style.background = 'rgba(56, 189, 248, 0.15)';
+        });
+        dropzone.addEventListener('dragleave', () => {
+          dropzone.style.background = '';
+        });
+        dropzone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          dropzone.style.background = '';
+          if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFile(e.dataTransfer.files[0]);
+          }
+        });
+        fileInput.addEventListener('change', () => {
+          if (fileInput.files && fileInput.files[0]) {
+            handleFile(fileInput.files[0]);
+          }
+        });
+      }
+
+      // Sample Pills
+      this.container.querySelectorAll('.ppt-sample-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          const url = pill.getAttribute('data-url');
+          if (urlInput) urlInput.value = url;
+          this.pendingImageSrc = url;
+          if (preview) {
+            preview.src = url;
+            preview.style.display = 'block';
+          }
+        });
+      });
+
+      // Insert Action
+      if (insertBtn) {
+        insertBtn.addEventListener('click', () => {
+          const src = this.pendingImageSrc || (urlInput ? urlInput.value.trim() : '');
+          if (!src) {
+            alert('Please select an image from your device or choose/enter an image URL.');
+            return;
+          }
+          const placement = placementSelect ? placementSelect.value : 'passport';
+          this.insertSlideImage(src, placement);
+          closeModal();
+        });
+      }
     }
 
-    renderThumbnails() {
-      const rail = this.container.querySelector('#ppt_thumbnails_rail');
-      if (!rail) return;
+    insertSlideImage(src, placement = 'passport') {
+      const s = this.slides[this.currentIdx];
+      if (!s.images) s.images = [];
 
-      let html = '';
-      this.slides.forEach((s, idx) => {
-        const isActive = idx === this.currentIdx;
-        html += `
-          <div class="ppt-thumb-card ${isActive ? 'active' : ''}" data-idx="${idx}">
-            <div class="ppt-thumb-num">
-              <span>${idx + 1}</span>
-              <div style="display: flex; gap: 2px;">
-                <button type="button" class="ppt-thumb-reorder-btn ppt-thumb-up" data-idx="${idx}" title="Move Up"><i class="fa-solid fa-chevron-up"></i></button>
-                <button type="button" class="ppt-thumb-reorder-btn ppt-thumb-down" data-idx="${idx}" title="Move Down"><i class="fa-solid fa-chevron-down"></i></button>
-              </div>
-            </div>
-            <div class="ppt-thumb-preview ppt-theme-${this.currentTheme}">
-              <div class="ppt-thumb-title">${s.title || 'Untitled Slide'}</div>
-              <div class="ppt-thumb-snippet">${s.subtitle || (s.items ? s.items[0] : '') || ''}</div>
-            </div>
-          </div>
+      const imgId = 'ppt_img_' + Date.now();
+      let imgObj;
+
+      if (placement === 'passport') {
+        imgObj = {
+          id: imgId,
+          src: src,
+          isPassport: true,
+          left: 'auto',
+          right: '20px',
+          top: '20px',
+          bottom: 'auto',
+          width: '115px'
+        };
+      } else if (placement === 'bottom_right') {
+        imgObj = {
+          id: imgId,
+          src: src,
+          isPassport: false,
+          left: 'auto',
+          right: '24px',
+          top: 'auto',
+          bottom: '24px',
+          width: '200px'
+        };
+      } else {
+        // Center floating
+        imgObj = {
+          id: imgId,
+          src: src,
+          isPassport: false,
+          left: '35%',
+          top: '30%',
+          right: 'auto',
+          bottom: 'auto',
+          width: '220px'
+        };
+      }
+
+      s.images.push(imgObj);
+      this.renderActiveSlide();
+    }
+
+    renderPresentationRulers() {
+      const rulerH = this.container.querySelector('#ppt_ruler_h');
+      const rulerV = this.container.querySelector('#ppt_ruler_v');
+      if (!rulerH || !rulerV) return;
+
+      // Horizontal: 0 to 10 inches
+      let htmlH = '';
+      for (let i = 0; i <= 10; i++) {
+        const leftPct = (i / 10) * 100;
+        htmlH += `
+          <div class="ppt-ruler-tick-h" style="left: ${leftPct}%; height: 10px;"></div>
+          <div class="ppt-ruler-num-h" style="left: ${leftPct}%;">${i}"</div>
         `;
-      });
+        if (i < 10) {
+          htmlH += `<div class="ppt-ruler-tick-h" style="left: ${leftPct + 5}%; height: 5px; opacity: 0.5;"></div>`;
+        }
+      }
+      rulerH.innerHTML = htmlH;
 
-      rail.innerHTML = html;
-
-      rail.querySelectorAll('.ppt-thumb-card').forEach(card => {
-        card.addEventListener('click', (e) => {
-          if (e.target.closest('.ppt-thumb-reorder-btn')) return;
-          this.currentIdx = parseInt(card.getAttribute('data-idx'), 10);
-          this.updateSlideView();
-        });
-      });
-
-      rail.querySelectorAll('.ppt-thumb-up').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const idx = parseInt(btn.getAttribute('data-idx'), 10);
-          this.moveSlideUp(idx);
-        });
-      });
-
-      rail.querySelectorAll('.ppt-thumb-down').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const idx = parseInt(btn.getAttribute('data-idx'), 10);
-          this.moveSlideDown(idx);
-        });
-      });
+      // Vertical: 0 to 6 inches
+      let htmlV = '';
+      for (let i = 0; i <= 6; i++) {
+        const topPct = (i / 6) * 100;
+        htmlV += `
+          <div class="ppt-ruler-tick-v" style="top: ${topPct}%; width: 10px;"></div>
+          <div class="ppt-ruler-num-v" style="top: ${topPct}%;">${i}"</div>
+        `;
+        if (i < 6) {
+          htmlV += `<div class="ppt-ruler-tick-v" style="top: ${topPct + (100 / 12)}%; width: 5px; opacity: 0.5;"></div>`;
+        }
+      }
+      rulerV.innerHTML = htmlV;
     }
 
     renderActiveSlide() {
@@ -790,11 +994,248 @@ Your secured score in Physics is «Marks» («Result»).`,
       canvas.innerHTML = this.buildSlideHtml(s, th, true);
       this.bindEditableElements(canvas, s);
 
+      // Render floating draggable images
+      if (s.images && s.images.length) {
+        s.images.forEach(imgData => {
+          const imgEl = this.createSlideImageElement(imgData, s);
+          canvas.appendChild(imgEl);
+        });
+      }
+
+      // Deselect images when clicking anywhere on empty canvas
+      canvas.addEventListener('click', (e) => {
+        if (!e.target.closest('.ppt-slide-img-container')) {
+          this.container.querySelectorAll('.ppt-slide-img-container').forEach(c => c.classList.remove('active-selected'));
+        }
+      });
+
+      // Update rulers
+      this.renderPresentationRulers();
+
       // Notes
       const notesEl = this.container.querySelector('#ppt_notes_editor');
       if (notesEl) {
         notesEl.innerText = s.notes || '';
       }
+    }
+
+    createSlideImageElement(imgData, s) {
+      const container = document.createElement('div');
+      container.className = 'ppt-slide-img-container' + (imgData.isPassport ? ' ppt-image-passport' : '');
+      container.dataset.imgId = imgData.id;
+      container.style.position = 'absolute';
+      container.style.width = imgData.width || '200px';
+      if (imgData.isPassport) {
+        container.style.left = 'auto';
+        container.style.right = imgData.right || '20px';
+        container.style.top = imgData.top || '20px';
+        container.style.bottom = 'auto';
+      } else {
+        if (imgData.left) container.style.left = imgData.left;
+        if (imgData.top) container.style.top = imgData.top;
+        if (imgData.right) container.style.right = imgData.right;
+        if (imgData.bottom) container.style.bottom = imgData.bottom;
+      }
+
+      // Floating toolbar
+      const toolbar = document.createElement('div');
+      toolbar.className = 'ppt-image-floating-bar';
+      toolbar.innerHTML = `
+        <button type="button" class="ppt-img-tool-btn" data-act="passport" title="Dock as Passport Photo / Badge (Top-Right)"><i class="fa-solid fa-id-badge"></i> Passport</button>
+        <button type="button" class="ppt-img-tool-btn" data-act="float" title="Unlock Free Float"><i class="fa-regular fa-square"></i> Float</button>
+        <button type="button" class="ppt-img-tool-btn" data-act="size" data-val="140px" title="Small (140px)">25%</button>
+        <button type="button" class="ppt-img-tool-btn" data-act="size" data-val="240px" title="Medium (240px)">50%</button>
+        <button type="button" class="ppt-img-tool-btn" data-act="size" data-val="360px" title="Large (360px)">75%</button>
+        <button type="button" class="ppt-img-tool-btn" data-act="center" title="Center on Slide"><i class="fa-solid fa-align-center"></i></button>
+        <button type="button" class="ppt-img-tool-btn btn-danger" data-act="delete" title="Delete Image"><i class="fa-solid fa-trash-can"></i></button>
+      `;
+      container.appendChild(toolbar);
+
+      // Image element
+      const img = document.createElement('img');
+      img.src = imgData.src;
+      img.className = 'ppt-slide-img';
+      img.alt = 'Slide Graphic';
+      img.draggable = false;
+      container.appendChild(img);
+
+      // Corner resize handle
+      const resizeHandle = document.createElement('div');
+      resizeHandle.className = 'ppt-img-resize-handle';
+      container.appendChild(resizeHandle);
+
+      // Selection toggle
+      container.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.container.querySelectorAll('.ppt-slide-img-container').forEach(c => c.classList.remove('active-selected'));
+        container.classList.add('active-selected');
+      });
+
+      // Toolbar actions
+      toolbar.querySelectorAll('.ppt-img-tool-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const act = btn.getAttribute('data-act');
+          if (act === 'delete') {
+            s.images = (s.images || []).filter(im => im.id !== imgData.id);
+            container.remove();
+          } else if (act === 'passport') {
+            imgData.isPassport = true;
+            imgData.left = 'auto';
+            imgData.right = '20px';
+            imgData.top = '20px';
+            imgData.bottom = 'auto';
+            imgData.width = '115px';
+            container.classList.add('ppt-image-passport');
+            container.style.left = 'auto';
+            container.style.right = '20px';
+            container.style.top = '20px';
+            container.style.bottom = 'auto';
+            container.style.width = '115px';
+          } else if (act === 'float') {
+            imgData.isPassport = false;
+            container.classList.remove('ppt-image-passport');
+            const rect = container.getBoundingClientRect();
+            const canvasRect = this.container.querySelector('#ppt_slide_canvas').getBoundingClientRect();
+            imgData.left = Math.round(rect.left - canvasRect.left) + 'px';
+            imgData.top = Math.round(rect.top - canvasRect.top) + 'px';
+            imgData.right = 'auto';
+            imgData.bottom = 'auto';
+            container.style.left = imgData.left;
+            container.style.top = imgData.top;
+            container.style.right = 'auto';
+            container.style.bottom = 'auto';
+          } else if (act === 'size') {
+            const val = btn.getAttribute('data-val');
+            imgData.width = val;
+            container.style.width = val;
+          } else if (act === 'center') {
+            imgData.isPassport = false;
+            container.classList.remove('ppt-image-passport');
+            const canvas = this.container.querySelector('#ppt_slide_canvas');
+            const cW = canvas.clientWidth;
+            const cH = canvas.clientHeight;
+            const iW = container.offsetWidth || 220;
+            const iH = container.offsetHeight || 160;
+            imgData.left = Math.max(10, Math.round((cW - iW) / 2)) + 'px';
+            imgData.top = Math.max(10, Math.round((cH - iH) / 2)) + 'px';
+            imgData.right = 'auto';
+            imgData.bottom = 'auto';
+            container.style.left = imgData.left;
+            container.style.top = imgData.top;
+            container.style.right = 'auto';
+            container.style.bottom = 'auto';
+          }
+        });
+      });
+
+      // Mouse & Touch Dragging over slide canvas elements
+      let isDragging = false;
+      let startX = 0, startY = 0;
+      let initLeft = 0, initTop = 0;
+
+      const onDragStart = (clientX, clientY, e) => {
+        if (e.target.closest('.ppt-img-tool-btn') || e.target.classList.contains('ppt-img-resize-handle')) return;
+        isDragging = true;
+        startX = clientX;
+        startY = clientY;
+        const canvas = this.container.querySelector('#ppt_slide_canvas');
+        const canvasRect = canvas.getBoundingClientRect();
+        const contRect = container.getBoundingClientRect();
+        initLeft = contRect.left - canvasRect.left;
+        initTop = contRect.top - canvasRect.top;
+        this.container.querySelectorAll('.ppt-slide-img-container').forEach(c => c.classList.remove('active-selected'));
+        container.classList.add('active-selected');
+        e.preventDefault();
+      };
+
+      const onDragMove = (clientX, clientY) => {
+        if (!isDragging) return;
+        const canvas = this.container.querySelector('#ppt_slide_canvas');
+        const canvasRect = canvas.getBoundingClientRect();
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+
+        let newLeft = initLeft + dx;
+        let newTop = initTop + dy;
+
+        const maxLeft = canvasRect.width - (container.offsetWidth || 50);
+        const maxTop = canvasRect.height - (container.offsetHeight || 50);
+        newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+        newTop = Math.max(0, Math.min(newTop, maxTop));
+
+        container.classList.remove('ppt-image-passport');
+        imgData.isPassport = false;
+        imgData.left = Math.round(newLeft) + 'px';
+        imgData.top = Math.round(newTop) + 'px';
+        imgData.right = 'auto';
+        imgData.bottom = 'auto';
+
+        container.style.left = imgData.left;
+        container.style.top = imgData.top;
+        container.style.right = 'auto';
+        container.style.bottom = 'auto';
+      };
+
+      const onDragEnd = () => {
+        if (!isDragging) return;
+        isDragging = false;
+      };
+
+      container.addEventListener('mousedown', (e) => onDragStart(e.clientX, e.clientY, e));
+      window.addEventListener('mousemove', (e) => onDragMove(e.clientX, e.clientY));
+      window.addEventListener('mouseup', onDragEnd);
+
+      container.addEventListener('touchstart', (e) => {
+        if (e.touches && e.touches[0]) onDragStart(e.touches[0].clientX, e.touches[0].clientY, e);
+      }, { passive: false });
+      window.addEventListener('touchmove', (e) => {
+        if (e.touches && e.touches[0]) onDragMove(e.touches[0].clientX, e.touches[0].clientY);
+      });
+      window.addEventListener('touchend', onDragEnd);
+
+      // Resize Handle Drag
+      let isResizing = false;
+      let startW = 0, startRX = 0;
+
+      const onResizeStart = (clientX, e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        isResizing = true;
+        startRX = clientX;
+        startW = container.offsetWidth;
+      };
+
+      const onResizeMove = (clientX) => {
+        if (!isResizing) return;
+        const dw = clientX - startRX;
+        const newW = Math.max(60, Math.min(startW + dw, 650));
+        container.style.width = newW + 'px';
+        imgData.width = newW + 'px';
+        if (imgData.isPassport) {
+          container.classList.remove('ppt-image-passport');
+          imgData.isPassport = false;
+        }
+      };
+
+      const onResizeEnd = () => {
+        if (!isResizing) return;
+        isResizing = false;
+      };
+
+      resizeHandle.addEventListener('mousedown', (e) => onResizeStart(e.clientX, e));
+      window.addEventListener('mousemove', (e) => onResizeMove(e.clientX));
+      window.addEventListener('mouseup', onResizeEnd);
+
+      resizeHandle.addEventListener('touchstart', (e) => {
+        if (e.touches && e.touches[0]) onResizeStart(e.touches[0].clientX, e);
+      }, { passive: false });
+      window.addEventListener('touchmove', (e) => {
+        if (e.touches && e.touches[0]) onResizeMove(e.touches[0].clientX);
+      });
+      window.addEventListener('touchend', onResizeEnd);
+
+      return container;
     }
 
     renderShowSlide() {
@@ -807,7 +1248,33 @@ Your secured score in Physics is «Marks» («Result»).`,
 
       canvas.style.background = th.bg;
       canvas.style.color = th.textColor;
+      canvas.style.position = 'relative';
       canvas.innerHTML = this.buildSlideHtml(s, th, false);
+
+      // Render floating images in show mode
+      if (s.images && s.images.length) {
+        s.images.forEach(img => {
+          const imgDiv = document.createElement('div');
+          imgDiv.className = 'ppt-slide-img-container' + (img.isPassport ? ' ppt-image-passport' : '');
+          imgDiv.style.position = 'absolute';
+          imgDiv.style.pointerEvents = 'none';
+          imgDiv.style.zIndex = '30';
+          imgDiv.style.width = img.width || '200px';
+          if (img.isPassport) {
+            imgDiv.style.left = 'auto';
+            imgDiv.style.right = img.right || '20px';
+            imgDiv.style.top = img.top || '20px';
+            imgDiv.style.bottom = 'auto';
+          } else {
+            if (img.left) imgDiv.style.left = img.left;
+            if (img.top) imgDiv.style.top = img.top;
+            if (img.right) imgDiv.style.right = img.right;
+            if (img.bottom) imgDiv.style.bottom = img.bottom;
+          }
+          imgDiv.innerHTML = `<img src="${img.src}" class="ppt-slide-img" alt="Slide Visual" />`;
+          canvas.appendChild(imgDiv);
+        });
+      }
 
       this.playTransitionEffect(canvas);
 
@@ -1371,6 +1838,19 @@ Your secured score in Physics is «Marks» («Result»).`,
       }
 
       card.innerHTML = html;
+
+      if (s.images && s.images.length) {
+        s.images.forEach(function(im) {
+          var passStyle = im.isPassport
+            ? 'position: absolute; top: 20px; right: 20px; width: 115px; height: 140px; object-fit: cover; border: 2px solid rgba(255,255,255,0.75); border-radius: 4px; z-index: 30;'
+            : 'position: absolute; left: ' + (im.left || 'auto') + '; top: ' + (im.top || 'auto') + '; right: ' + (im.right || 'auto') + '; bottom: ' + (im.bottom || 'auto') + '; width: ' + (im.width || '200px') + '; border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.35); z-index: 30;';
+          var imgEl = document.createElement('img');
+          imgEl.src = im.src;
+          imgEl.style.cssText = passStyle;
+          imgEl.alt = 'Slide Visual';
+          card.appendChild(imgEl);
+        });
+      }
     }
 
     function nextSlide() {
@@ -1481,6 +1961,12 @@ Your secured score in Physics is «Marks» («Result»).`,
           contentHtml = `<p>${s.subtitle || s.customContent || ''}</p>`;
         }
 
+        if (s.images && s.images.length) {
+          contentHtml += '<div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">' +
+            s.images.map(im => `<img src="${im.src}" style="max-height: 90px; border-radius: 4px; border: 1px solid #cbd5e1; box-shadow: 0 1px 4px rgba(0,0,0,0.1);" alt="Visual" />`).join('') +
+            '</div>';
+        }
+
         slidesHtml += `
           <div class="handout-slide" style="page-break-inside: avoid; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; margin-bottom: 24px; background: #ffffff;">
             <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #2563eb; padding-bottom: 6px; margin-bottom: 10px;">
@@ -1511,7 +1997,7 @@ Your secured score in Physics is «Marks» («Result»).`,
           <body>
             <div style="text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 12px; margin-bottom: 24px;">
               <h2 style="margin: 0; color: #1e3a8a;">S.V.A. GOVT. DEGREE COLLEGE, SRIKALAHASTI</h2>
-              <p style="margin: 4px 0; color: #475569; font-size: 0.95rem;">Department of Computer Science & Physics &bull; Course Handouts & Study Deck</p>
+              <p style="margin: 4px 0; color: #475569; font-size: 0.95rem;">Department of Physics &bull; S.V.A. Govt. Degree College, Srikalahasti &bull; Course Handouts & Study Deck</p>
               <h3 style="margin: 8px 0 0 0; color: #2563eb;">${deckTitle}</h3>
             </div>
             ${slidesHtml}

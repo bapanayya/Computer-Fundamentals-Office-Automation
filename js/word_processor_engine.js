@@ -1,6 +1,6 @@
 /**
  * Computer-Fund-OfficeAutomat-SVAGDC: Interactive Word Processor & Mail Merge Engine
- * Department of Physics & Computer Science, S.V.A. Govt. Degree College, Srikalahasti
+ * Department of Physics, S.V.A. Govt. Degree College, Srikalahasti
  */
 
 (function(window) {
@@ -45,12 +45,12 @@
           Department of Physics, S.V.A. Govt. Degree College, Srikalahasti<br>
           Email: ramesh.physics.sva@gmail.com &bull; Phone: +91 98765 43210 &bull; LinkedIn: linkedin.com/in/ramesh-sva
         </p>
-        <hr style="border: 0; border-top: 2px solid #2563eb; margin: 1rem 0;">
+        <hr style="border: 0; border-top: 2px solid #2563eb; margin: 0.8rem 0;">
         
         <h3 style="color: #1e3a8a; border-bottom: 1px solid #cbd5e1; padding-bottom: 0.3rem;">ACADEMIC PROFILE &amp; OBJECTIVE</h3>
         <p>Diligent and analytical Physics undergraduate seeking a competitive foundation in scientific computing, electronic instrumentation, and data analysis. Aiming to contribute with strong laboratory rigor and practical problem-solving.</p>
         
-        <h3 style="color: #1e3a8a; border-bottom: 1px solid #cbd5e1; padding-bottom: 0.3rem; margin-top: 1rem;">EDUCATIONAL QUALIFICATIONS</h3>
+        <h3 style="color: #1e3a8a; border-bottom: 1px solid #cbd5e1; padding-bottom: 0.3rem; margin-top: 0.8rem;">EDUCATIONAL QUALIFICATIONS</h3>
         <table style="width: 100%; border-collapse: collapse; margin-top: 0.5rem;" border="1">
           <thead>
             <tr style="background: #f1f5f9;">
@@ -76,7 +76,7 @@
           </tbody>
         </table>
         
-        <h3 style="color: #1e3a8a; border-bottom: 1px solid #cbd5e1; padding-bottom: 0.3rem; margin-top: 1rem;">TECHNICAL &amp; LAB SKILLS</h3>
+        <h3 style="color: #1e3a8a; border-bottom: 1px solid #cbd5e1; padding-bottom: 0.3rem; margin-top: 0.8rem;">TECHNICAL &amp; LAB SKILLS</h3>
         <ul>
           <li><strong>Computer Literacy:</strong> MS Word (Mail Merge, Document Styles), MS Excel (Formulas, Pivot Tables, Lookups), PowerPoint Presentation Design.</li>
           <li><strong>Programming &amp; Tools:</strong> Python Fundamentals, Markdown, HTML5 Basics.</li>
@@ -183,7 +183,7 @@
   class WordProcessor {
     constructor(mountEl, options = {}) {
       this.container = typeof mountEl === 'string' ? document.getElementById(mountEl) : mountEl;
-      this.mode = options.mode || 'wordprocessor'; // 'wordprocessor' or 'mailmerge'
+      this.mode = options.mode || 'wordprocessor';
       this.presetKey = options.initialPreset || (this.mode === 'mailmerge' ? 'mailmerge' : 'leave_letter');
       this.currentRecipientIdx = 0;
       this.isPreviewActive = false;
@@ -196,6 +196,7 @@
       this.lineHeight = '1.5';
       this.activeTableCell = null;
       this.activeContentEl = null;
+      this.activeImageContainer = null;
       this.pendingImageDataUrl = null;
       this.paginateTimer = null;
       this.draggedImageContainer = null;
@@ -208,6 +209,7 @@
       this.bindEvents();
       this.loadPreset(this.presetKey);
       this.updateStats();
+      this.renderRulers();
     }
 
     render() {
@@ -230,6 +232,7 @@
                 <option value="blank" ${this.presetKey === 'blank' ? 'selected' : ''}>📝 Blank Document</option>
               </select>
               <button type="button" class="btn-tool-action" id="wp_btn_add_page" title="Insert New A4 Page Break"><i class="fa-regular fa-file"></i> + Page</button>
+              <button type="button" class="btn-tool-action text-danger" id="wp_btn_del_page" title="Delete Active or Blank Page"><i class="fa-solid fa-trash-can"></i> - Page</button>
               <button type="button" class="btn-tool-action btn-success-accent" id="wp_btn_export_doc" title="Download as MS Word Document (.doc)"><i class="fa-solid fa-file-word"></i> Word (.doc)</button>
               <button type="button" class="btn-tool-action" id="wp_btn_export_txt" title="Download Plain Text (.txt)"><i class="fa-solid fa-file-lines"></i> Text (.txt)</button>
               <button type="button" class="btn-tool-action" id="wp_btn_copy" title="Copy Document HTML"><i class="fa-regular fa-copy"></i> Copy</button>
@@ -417,17 +420,26 @@
             <button type="button" class="wp-tbl-btn text-danger" id="wp_float_del_tbl" title="Delete Table"><i class="fa-solid fa-trash"></i></button>
           </div>
 
-          <!-- Document Workspace Wrapper with A4 Multi-Page Container -->
+          <!-- Document Workspace Wrapper with Dual Rulers & A4 Multi-Page Container -->
           <div class="wp-workspace" id="wp_workspace">
-            <div class="wp-ruler-bar">
-              <span class="ruler-mark">0</span><span class="ruler-mark">1</span><span class="ruler-mark">2</span>
-              <span class="ruler-mark">3</span><span class="ruler-mark">4</span><span class="ruler-mark">5</span>
-              <span class="ruler-mark">6</span><span class="ruler-mark">7</span><span class="ruler-mark">8</span>
-            </div>
+            <div class="wp-workspace-inner">
+              <!-- Ruler Top Row: Corner Block + Horizontal Ruler -->
+              <div class="wp-ruler-top-row">
+                <div class="wp-ruler-corner" title="Ruler: Inches"><i class="fa-solid fa-ruler-combined"></i></div>
+                <div class="wp-ruler-horizontal" id="wp_ruler_h">
+                  <!-- Dynamically drawn ruler ticks & margin zones -->
+                </div>
+              </div>
 
-            <!-- Discrete A4 Pages Stream -->
-            <div class="wp-pages-container" id="wp_pages_container">
-              <!-- Rendered via JS -->
+              <!-- Main Workspace Row: Vertical Ruler + A4 Pages Container -->
+              <div class="wp-workspace-main-row">
+                <div class="wp-ruler-vertical" id="wp_ruler_v">
+                  <!-- Dynamically drawn vertical ruler ticks & margin zones -->
+                </div>
+                <div class="wp-pages-container" id="wp_pages_container">
+                  <!-- Discrete A4 Page Sheets generated here -->
+                </div>
+              </div>
             </div>
           </div>
 
@@ -456,11 +468,11 @@
                 <!-- Option 1: Device / Gallery Upload -->
                 <div>
                   <label style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary); display: block; margin-bottom: 6px;">
-                    <i class="fa-solid fa-folder-open text-primary"></i> 1. Choose from Gallery / Folders:
+                    <i class="fa-solid fa-folder-open text-primary"></i> 1. Choose from Phone Gallery / Folders:
                   </label>
                   <div class="wp-upload-dropzone" id="wp_modal_dropzone">
                     <i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.8rem; color: var(--primary); margin-bottom: 6px;"></i>
-                    <p style="margin: 0; font-size: 0.85rem; font-weight: 600;">Tap to select photo from Phone Gallery or Computer</p>
+                    <p style="margin: 0; font-size: 0.85rem; font-weight: 600;">Tap to select photo from Gallery / Computer</p>
                     <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: var(--text-muted);">Supports PNG, JPG, JPEG, GIF, WEBP, SVG</p>
                     <input type="file" id="wp_modal_file_input" accept="image/*" style="display: none;">
                     <img id="wp_modal_preview" class="wp-upload-preview" alt="Preview">
@@ -470,7 +482,7 @@
                 <!-- Option 2: Web URL or Physics Diagrams -->
                 <div>
                   <label style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary); display: block; margin-bottom: 6px;">
-                    <i class="fa-solid fa-globe text-primary"></i> 2. Or Enter Web Image URL:
+                    <i class="fa-solid fa-globe text-primary"></i> 2. Or Enter Web Image URL / Physics Diagrams:
                   </label>
                   <input type="text" class="wp-fr-input" id="wp_modal_url_input" placeholder="https://images.unsplash.com/..." style="width: 100%; box-sizing: border-box; padding: 0.4rem 0.6rem;">
                   <div class="wp-sample-pills">
@@ -480,10 +492,15 @@
                   </div>
                 </div>
 
-                <!-- Caption Input -->
+                <!-- Placement Mode Selection -->
                 <div>
-                  <label style="font-weight: 600; font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">Figure Caption (Optional):</label>
-                  <input type="text" class="wp-fr-input" id="wp_modal_caption_input" placeholder="Figure: Experimental observation or diagram..." style="width: 100%; box-sizing: border-box;">
+                  <label style="font-weight: 600; font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">Initial Placement Mode:</label>
+                  <select class="wp-select" id="wp_modal_placement_select" style="width: 100%;">
+                    <option value="passport">📷 Passport Photo (Top-Right Corner)</option>
+                    <option value="floating" selected>🔲 Free Floating (Drag anywhere over text)</option>
+                    <option value="wrap_right">▶ Right Wrapped (Text flows around)</option>
+                    <option value="inline">■ Standard Inline Block</option>
+                  </select>
                 </div>
               </div>
               <div class="wp-dialog-footer">
@@ -605,6 +622,14 @@
         });
       }
 
+      // Manual Delete Page (- Page)
+      const delPageBtn = this.container.querySelector('#wp_btn_del_page');
+      if (delPageBtn) {
+        delPageBtn.addEventListener('click', () => {
+          this.deleteActivePage();
+        });
+      }
+
       // Table Tools in Ribbon
       const btnInsertTable = this.container.querySelector('#wp_btn_insert_table');
       if (btnInsertTable) {
@@ -654,14 +679,13 @@
       const fileInput = this.container.querySelector('#wp_modal_file_input');
       const previewImg = this.container.querySelector('#wp_modal_preview');
       const urlInput = this.container.querySelector('#wp_modal_url_input');
-      const captionInput = this.container.querySelector('#wp_modal_caption_input');
+      const placementSelect = this.container.querySelector('#wp_modal_placement_select');
 
       if (openImgBtn && imgModal) {
         openImgBtn.addEventListener('click', () => {
           this.pendingImageDataUrl = null;
           if (previewImg) { previewImg.src = ''; previewImg.style.display = 'none'; }
           if (urlInput) urlInput.value = '';
-          if (captionInput) captionInput.value = '';
           imgModal.style.display = 'flex';
         });
       }
@@ -672,7 +696,7 @@
       if (closeImgBtn) closeImgBtn.addEventListener('click', closeImageModal);
       if (cancelImgBtn) cancelImgBtn.addEventListener('click', closeImageModal);
 
-      // Dropzone click triggers device file picker (Mobile gallery / PC folders)
+      // Dropzone click triggers device file picker
       if (dropzone && fileInput) {
         dropzone.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', () => {
@@ -712,8 +736,8 @@
             alert('Please select an image from your device or enter an image URL.');
             return;
           }
-          const caption = captionInput ? captionInput.value.trim() : '';
-          this.insertCustomImage(finalSrc, caption);
+          const placement = placementSelect ? placementSelect.value : 'floating';
+          this.insertCustomImage(finalSrc, placement);
           closeImageModal();
         });
       }
@@ -907,10 +931,20 @@
         modalClose.addEventListener('click', () => { modal.style.display = 'none'; });
       }
 
-      // Workspace Click Delegations (Tables, Images, Focus)
+      // Workspace Delegations (Tables, Images, Page Delete Buttons)
       const pagesContainer = this.container.querySelector('#wp_pages_container');
       if (pagesContainer) {
         pagesContainer.addEventListener('click', (e) => {
+          // Page delete button in header band
+          const closeBtn = e.target.closest('.wp-page-close-btn');
+          if (closeBtn) {
+            const pageEl = closeBtn.closest('.wp-a4-page');
+            const pages = Array.from(pagesContainer.querySelectorAll('.wp-a4-page'));
+            const idx = pages.indexOf(pageEl);
+            if (idx > 0) this.deletePage(idx);
+            return;
+          }
+
           // Table cell focus
           const cell = e.target.closest('td, th');
           if (cell) {
@@ -950,6 +984,69 @@
     }
 
     // ==========================================
+    // Calibrated Horizontal & Vertical Dual Rulers
+    // ==========================================
+
+    renderRulers() {
+      const rulerH = this.container.querySelector('#wp_ruler_h');
+      const rulerV = this.container.querySelector('#wp_ruler_v');
+      if (!rulerH || !rulerV) return;
+
+      const isLandscape = this.orientation === 'landscape';
+      const pageW = isLandscape ? 1123 : 794;
+      const pageH = isLandscape ? 794 : 1123;
+
+      rulerH.style.width = pageW + 'px';
+      rulerV.style.height = pageH + 'px';
+
+      let padLeft = 72;
+      let padRight = 72;
+      let padTop = 60;
+      let padBottom = 60;
+      if (this.margins === 'narrow') {
+        padLeft = 42; padRight = 42; padTop = 35; padBottom = 35;
+      } else if (this.margins === 'compact') {
+        padLeft = 18; padRight = 18; padTop = 14; padBottom = 14;
+      }
+
+      // Horizontal Ruler Ticks & Shaded Margins
+      let htmlH = '';
+      htmlH += `<div class="wp-ruler-margin-zone" style="left:0; top:0; bottom:0; width:${padLeft}px;"></div>`;
+      htmlH += `<div class="wp-ruler-margin-zone" style="right:0; top:0; bottom:0; width:${padRight}px;"></div>`;
+
+      for (let px = 0; px <= pageW; px += 24) {
+        const isMajor = px % 96 === 0;
+        const isHalf = px % 48 === 0 && !isMajor;
+        const inch = px / 96;
+        if (isMajor && px > 0 && px < pageW) {
+          htmlH += `<div class="ruler-num-h" style="left:${px}px;">${inch}</div>`;
+          htmlH += `<div class="ruler-tick-h major" style="left:${px}px;"></div>`;
+        } else {
+          htmlH += `<div class="ruler-tick-h ${isHalf ? 'major' : 'sub'}" style="left:${px}px;"></div>`;
+        }
+      }
+      rulerH.innerHTML = htmlH;
+
+      // Vertical Ruler Ticks & Shaded Margins
+      let htmlV = '';
+      htmlV += `<div class="wp-ruler-margin-zone" style="top:0; left:0; right:0; height:${padTop}px;"></div>`;
+      htmlV += `<div class="wp-ruler-margin-zone" style="bottom:0; left:0; right:0; height:${padBottom}px;"></div>`;
+
+      for (let py = 0; py <= pageH; py += 24) {
+        const isMajor = py % 96 === 0;
+        const isHalf = py % 48 === 0 && !isMajor;
+        const inch = py / 96;
+        if (isMajor && py > 0 && py < pageH) {
+          htmlV += `<div class="ruler-num-v" style="top:${py}px;">${inch}</div>`;
+          htmlV += `<div class="ruler-tick-v major" style="top:${py}px;"></div>`;
+        } else {
+          htmlV += `<div class="ruler-tick-v ${isHalf ? 'major' : 'sub'}" style="top:${py}px;"></div>`;
+        }
+      }
+      rulerV.innerHTML = htmlV;
+    }
+
+    // ==========================================
     // Multi-Page A4 Sheet Management & Pagination
     // ==========================================
 
@@ -960,14 +1057,17 @@
 
       page.innerHTML = `
         <div class="wp-page-header-band">
-          <span><i class="fa-solid fa-graduation-cap"></i> S.V.A. Govt. Degree College &bull; Office Automation</span>
-          <span class="wp-page-num-indicator">Page ${pageNum}</span>
+          <span><i class="fa-solid fa-graduation-cap"></i> S.V.A. Govt. Degree College, Srikalahasti</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="wp-page-num-indicator">Page ${pageNum}</span>
+            ${pageNum > 1 ? `<button type="button" class="wp-page-close-btn" title="Delete Page ${pageNum}">&times;</button>` : ''}
+          </div>
         </div>
-        <div class="wp-page-content" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true">
+        <div class="wp-page-content" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" style="position: relative;">
           ${initialHtml || '<p><br></p>'}
         </div>
         <div class="wp-page-footer-band">
-          <span>Department of Physics / Computer Science</span>
+          <span>Department of Physics &bull; S.V.A. Govt. Degree College</span>
           <span class="wp-page-orientation-indicator">A4 Sheet</span>
         </div>
       `;
@@ -975,7 +1075,6 @@
       const content = page.querySelector('.wp-page-content');
       content.style.lineHeight = this.lineHeight;
 
-      // Real-time input handling for pagination & stats
       content.addEventListener('input', () => {
         this.activeContentEl = content;
         this.updateStats();
@@ -987,19 +1086,26 @@
         this.updateActivePageStat();
       });
 
-      // Drag over and drop for images
-      content.addEventListener('dragover', (e) => {
+      // Drag and drop across pages
+      page.addEventListener('dragover', (e) => {
         e.preventDefault();
       });
 
-      content.addEventListener('drop', (e) => {
+      page.addEventListener('drop', (e) => {
         if (this.draggedImageContainer) {
           e.preventDefault();
-          const target = e.target.closest('p, h1, h2, h3, h4, table, div');
-          if (target && target !== this.draggedImageContainer && content.contains(target)) {
-            content.insertBefore(this.draggedImageContainer, target);
+          if (this.draggedImageContainer.classList.contains('wp-image-floating')) {
+            page.appendChild(this.draggedImageContainer);
+            const rect = page.getBoundingClientRect();
+            this.draggedImageContainer.style.left = Math.max(10, e.clientX - rect.left - 60) + 'px';
+            this.draggedImageContainer.style.top = Math.max(10, e.clientY - rect.top - 60) + 'px';
           } else {
-            content.appendChild(this.draggedImageContainer);
+            const target = e.target.closest('p, h1, h2, h3, h4, table, div');
+            if (target && target !== this.draggedImageContainer && content.contains(target)) {
+              content.insertBefore(this.draggedImageContainer, target);
+            } else {
+              content.appendChild(this.draggedImageContainer);
+            }
           }
           this.draggedImageContainer = null;
           this.schedulePagination();
@@ -1022,7 +1128,51 @@
         this.activeContentEl = content;
       }
       this.updateStats();
+      this.renderRulers();
       return newPage;
+    }
+
+    deletePage(pageIdx) {
+      const pagesContainer = this.container.querySelector('#wp_pages_container');
+      if (!pagesContainer) return;
+      const pages = pagesContainer.querySelectorAll('.wp-a4-page');
+      if (pages.length <= 1) {
+        alert('A document must have at least one page.');
+        return;
+      }
+      if (pageIdx < 0 || pageIdx >= pages.length) return;
+
+      const pageToDelete = pages[pageIdx];
+      const content = pageToDelete.querySelector('.wp-page-content');
+      const text = content ? (content.innerText || '').trim() : '';
+
+      if (text.length > 0) {
+        if (!confirm(`Delete Page ${pageIdx + 1}? Any text or diagrams on this page will be removed.`)) {
+          return;
+        }
+      }
+
+      pageToDelete.remove();
+      this.updatePageNumbers();
+      this.activeContentEl = this.container.querySelector('.wp-page-content');
+      this.updateStats();
+    }
+
+    deleteActivePage() {
+      const pages = Array.from(this.container.querySelectorAll('.wp-a4-page'));
+      if (pages.length <= 1) {
+        alert('A document must have at least one page.');
+        return;
+      }
+      let currentIdx = pages.length - 1;
+      if (this.activeContentEl) {
+        const parentPage = this.activeContentEl.closest('.wp-a4-page');
+        if (parentPage) currentIdx = pages.indexOf(parentPage);
+      }
+      if (currentIdx === 0 && pages.length > 1) {
+        currentIdx = pages.length - 1;
+      }
+      this.deletePage(currentIdx);
     }
 
     updatePageNumbers() {
@@ -1031,6 +1181,8 @@
         page.setAttribute('data-page-num', idx + 1);
         const ind = page.querySelector('.wp-page-num-indicator');
         if (ind) ind.textContent = `Page ${idx + 1} of ${pages.length}`;
+        const closeBtn = page.querySelector('.wp-page-close-btn');
+        if (closeBtn) closeBtn.title = `Delete Page ${idx + 1}`;
       });
       this.updateActivePageStat();
     }
@@ -1075,7 +1227,7 @@
       if (this.paginateTimer) clearTimeout(this.paginateTimer);
       this.paginateTimer = setTimeout(() => {
         this.checkPagination();
-      }, 350);
+      }, 400);
     }
 
     checkPagination() {
@@ -1089,20 +1241,33 @@
         const content = page.querySelector('.wp-page-content');
         if (!content) continue;
 
-        if (content.scrollHeight > maxH + 15) {
+        // Clean up trailing empty pages (page > 0)
+        if (i > 0 && pages.length > 1 && (content.innerText || '').trim() === '' && content.querySelectorAll('img, table').length === 0) {
+          if (content !== this.activeContentEl) {
+            page.remove();
+            this.updatePageNumbers();
+            continue;
+          }
+        }
+
+        // Only paginate if scrollHeight genuinely overflows with safe buffer
+        if (content.scrollHeight > maxH + 50) {
           const children = Array.from(content.children);
           if (children.length <= 1) continue;
 
           let splitIndex = -1;
           for (let c = 0; c < children.length; c++) {
             const child = children[c];
-            if (child.offsetTop + child.offsetHeight > maxH) {
+            // Skip floating or absolute passport photos
+            if (child.classList.contains('wp-image-floating') || child.classList.contains('wp-image-passport')) continue;
+            const relTop = child.offsetTop;
+            if (relTop + child.offsetHeight > maxH) {
               splitIndex = c;
               break;
             }
           }
 
-          if (splitIndex !== -1 && splitIndex < children.length) {
+          if (splitIndex > 0 && splitIndex < children.length) {
             const overflowing = children.slice(splitIndex);
             const frag = document.createDocumentFragment();
             overflowing.forEach(node => frag.appendChild(node));
@@ -1120,7 +1285,6 @@
             }
 
             this.updatePageNumbers();
-            this.checkPagination();
             break;
           }
         }
@@ -1128,24 +1292,23 @@
     }
 
     // ==========================================
-    // Image Upload, Drag & Drop, and Resizing
+    // Image Upload, Drag & Drop, Free Floating & Resizing
     // ==========================================
 
-    insertCustomImage(src, captionText = '') {
+    insertCustomImage(src, placementMode = 'floating') {
       this.ensureActiveFocus();
       const container = document.createElement('div');
       container.className = 'wp-image-container active-selected';
       container.setAttribute('contenteditable', 'false');
-      container.setAttribute('draggable', 'true');
 
       const wrapper = document.createElement('div');
       wrapper.className = 'wp-image-wrapper';
 
       const img = document.createElement('img');
       img.src = src;
-      img.alt = captionText || 'Uploaded Academic Visual';
+      img.alt = 'Uploaded Academic Visual';
       img.className = 'wp-doc-image';
-      img.style.width = '340px';
+      img.style.width = placementMode === 'passport' ? '115px' : '280px';
 
       const handle = document.createElement('div');
       handle.className = 'wp-image-resize-handle';
@@ -1154,16 +1317,17 @@
       const toolbar = document.createElement('div');
       toolbar.className = 'wp-image-floating-bar';
       toolbar.innerHTML = `
-        <button type="button" class="wp-img-tool-btn" data-action="left" title="Align Left"><i class="fa-solid fa-align-left"></i></button>
-        <button type="button" class="wp-img-tool-btn" data-action="center" title="Center"><i class="fa-solid fa-align-center"></i></button>
-        <button type="button" class="wp-img-tool-btn" data-action="right" title="Align Right"><i class="fa-solid fa-align-right"></i></button>
+        <button type="button" class="wp-img-tool-btn" data-action="passport" title="Snap as Passport Photo (Top-Right)">📷 Passport</button>
+        <button type="button" class="wp-img-tool-btn" data-action="float" title="Free Float (Over text)">🔲 Float</button>
+        <button type="button" class="wp-img-tool-btn" data-action="wrap-right" title="Wrap Right">▶ Wrap</button>
+        <button type="button" class="wp-img-tool-btn" data-action="wrap-left" title="Wrap Left">◀ Wrap</button>
+        <button type="button" class="wp-img-tool-btn" data-action="inline" title="Inline Center">■ Center</button>
         <button type="button" class="wp-img-tool-btn" data-action="w25" title="25% width">25%</button>
         <button type="button" class="wp-img-tool-btn" data-action="w50" title="50% width">50%</button>
-        <button type="button" class="wp-img-tool-btn" data-action="w75" title="75% width">75%</button>
         <button type="button" class="wp-img-tool-btn" data-action="w100" title="100% width">100%</button>
-        <button type="button" class="wp-img-tool-btn" data-action="move-up" title="Move Up"><i class="fa-solid fa-arrow-up"></i></button>
-        <button type="button" class="wp-img-tool-btn" data-action="move-down" title="Move Down"><i class="fa-solid fa-arrow-down"></i></button>
-        <button type="button" class="wp-img-tool-btn btn-danger-tool" data-action="delete" title="Delete"><i class="fa-solid fa-trash"></i></button>
+        <button type="button" class="wp-img-tool-btn" data-action="page-prev" title="Move to Previous Page">⏮</button>
+        <button type="button" class="wp-img-tool-btn" data-action="page-next" title="Move to Next Page">⏭</button>
+        <button type="button" class="wp-img-tool-btn btn-danger-tool" data-action="delete" title="Delete Image"><i class="fa-solid fa-trash"></i></button>
       `;
 
       wrapper.appendChild(img);
@@ -1171,35 +1335,92 @@
       wrapper.appendChild(toolbar);
       container.appendChild(wrapper);
 
-      const caption = document.createElement('p');
-      caption.className = 'wp-image-caption';
-      caption.setAttribute('contenteditable', 'true');
-      caption.textContent = captionText || 'Figure: Scientific visual illustration / Laboratory capture';
-      container.appendChild(caption);
-
-      this.bindImageInteractive(container, img, handle, toolbar);
-
-      // Insert into active page content
+      // Target page selection
       const targetContent = this.activeContentEl || this.container.querySelector('.wp-page-content');
-      if (targetContent) {
-        targetContent.appendChild(container);
-        const spacer = document.createElement('p');
-        spacer.innerHTML = '<br>';
-        targetContent.appendChild(spacer);
+      const targetPage = targetContent ? targetContent.closest('.wp-a4-page') : this.container.querySelector('.wp-a4-page');
+
+      if (placementMode === 'passport') {
+        container.classList.add('wp-image-passport');
+        if (targetPage) targetPage.appendChild(container);
+      } else if (placementMode === 'floating') {
+        container.classList.add('wp-image-floating');
+        container.style.top = '120px';
+        container.style.right = '60px';
+        if (targetPage) targetPage.appendChild(container);
+      } else if (placementMode === 'wrap_right') {
+        container.classList.add('wp-image-wrap-right');
+        if (targetContent) targetContent.prepend(container);
+      } else {
+        if (targetContent) {
+          targetContent.appendChild(container);
+          const spacer = document.createElement('p');
+          spacer.innerHTML = '<br>';
+          targetContent.appendChild(spacer);
+        }
       }
 
+      this.bindImageInteractive(container, img, handle, toolbar);
       this.activeImageContainer = container;
       this.updateStats();
       this.schedulePagination();
     }
 
     bindImageInteractive(container, img, handle, toolbar) {
-      // Dragging repositioning
-      container.addEventListener('dragstart', (e) => {
-        this.draggedImageContainer = container;
-        e.dataTransfer.setData('text/plain', '');
-        e.dataTransfer.effectAllowed = 'move';
-      });
+      // Free drag over text & across pages when floating / passport
+      const onDragStart = (e) => {
+        if (e.target.closest('.wp-img-tool-btn') || e.target.classList.contains('wp-image-resize-handle')) return;
+        const isFloating = container.classList.contains('wp-image-floating') || container.classList.contains('wp-image-passport');
+        if (!isFloating) return;
+
+        e.preventDefault();
+        const curPage = container.closest('.wp-a4-page');
+        if (!curPage) return;
+
+        const pageRect = curPage.getBoundingClientRect();
+        const contRect = container.getBoundingClientRect();
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        const offsetX = clientX - contRect.left;
+        const offsetY = clientY - contRect.top;
+
+        const onDragMove = (ev) => {
+          const moveX = ev.clientX || (ev.touches && ev.touches[0].clientX);
+          const moveY = ev.clientY || (ev.touches && ev.touches[0].clientY);
+          if (!moveX || !moveY) return;
+
+          // Detect page under cursor to allow dragging across pages
+          const hoveredEl = document.elementFromPoint(moveX, moveY);
+          const targetHoverPage = hoveredEl ? hoveredEl.closest('.wp-a4-page') : null;
+          const activePage = targetHoverPage || curPage;
+
+          if (activePage && activePage !== container.parentNode) {
+            activePage.appendChild(container);
+          }
+
+          const targetRect = activePage.getBoundingClientRect();
+          const newLeft = moveX - targetRect.left - offsetX;
+          const newTop = moveY - targetRect.top - offsetY;
+
+          container.style.left = Math.max(10, Math.min(targetRect.width - container.offsetWidth - 10, newLeft)) + 'px';
+          container.style.top = Math.max(10, Math.min(targetRect.height - container.offsetHeight - 10, newTop)) + 'px';
+          container.style.right = 'auto';
+        };
+
+        const onDragEnd = () => {
+          window.removeEventListener('mousemove', onDragMove);
+          window.removeEventListener('mouseup', onDragEnd);
+          window.removeEventListener('touchmove', onDragMove);
+          window.removeEventListener('touchend', onDragEnd);
+        };
+
+        window.addEventListener('mousemove', onDragMove);
+        window.addEventListener('mouseup', onDragEnd);
+        window.addEventListener('touchmove', onDragMove, { passive: false });
+        window.addEventListener('touchend', onDragEnd);
+      };
+
+      container.addEventListener('mousedown', onDragStart);
+      container.addEventListener('touchstart', onDragStart, { passive: false });
 
       // Corner resize dragging
       const onResizeStart = (e) => {
@@ -1238,30 +1459,88 @@
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           const action = btn.getAttribute('data-action');
-          if (action === 'left') {
-            container.style.textAlign = 'left';
-            container.style.margin = '10px 0';
-          } else if (action === 'center') {
-            container.style.textAlign = 'center';
+          const curPage = container.closest('.wp-a4-page') || this.container.querySelector('.wp-a4-page');
+
+          if (action === 'passport') {
+            container.classList.remove('wp-image-floating', 'wp-image-wrap-right', 'wp-image-wrap-left');
+            container.classList.add('wp-image-passport');
+            if (curPage && container.parentNode !== curPage) curPage.appendChild(container);
+            container.style.position = 'absolute';
+            container.style.top = '45px';
+            container.style.right = '50px';
+            container.style.left = 'auto';
+            img.style.width = '115px';
+            img.style.height = '140px';
+          } else if (action === 'float') {
+            container.classList.remove('wp-image-passport', 'wp-image-wrap-right', 'wp-image-wrap-left');
+            container.classList.add('wp-image-floating');
+            if (curPage && container.parentNode !== curPage) curPage.appendChild(container);
+            container.style.position = 'absolute';
+            if (!container.style.top) container.style.top = '120px';
+            if (!container.style.left) container.style.left = '80px';
+          } else if (action === 'wrap-right') {
+            container.classList.remove('wp-image-floating', 'wp-image-passport', 'wp-image-wrap-left');
+            container.classList.add('wp-image-wrap-right');
+            container.style.position = 'relative';
+            container.style.top = 'auto';
+            container.style.left = 'auto';
+            container.style.right = 'auto';
+            const content = curPage ? curPage.querySelector('.wp-page-content') : null;
+            if (content && container.parentNode !== content) content.prepend(container);
+          } else if (action === 'wrap-left') {
+            container.classList.remove('wp-image-floating', 'wp-image-passport', 'wp-image-wrap-right');
+            container.classList.add('wp-image-wrap-left');
+            container.style.position = 'relative';
+            container.style.top = 'auto';
+            container.style.left = 'auto';
+            container.style.right = 'auto';
+            const content = curPage ? curPage.querySelector('.wp-page-content') : null;
+            if (content && container.parentNode !== content) content.prepend(container);
+          } else if (action === 'inline') {
+            container.classList.remove('wp-image-floating', 'wp-image-passport', 'wp-image-wrap-right', 'wp-image-wrap-left');
+            container.style.position = 'relative';
+            container.style.top = 'auto';
+            container.style.left = 'auto';
+            container.style.right = 'auto';
+            container.style.display = 'block';
             container.style.margin = '14px auto';
-          } else if (action === 'right') {
-            container.style.textAlign = 'right';
-            container.style.margin = '10px 0';
+            container.style.textAlign = 'center';
+            const content = curPage ? curPage.querySelector('.wp-page-content') : null;
+            if (content && container.parentNode !== content) content.appendChild(container);
           } else if (action === 'w25') {
             img.style.width = '25%';
+            img.style.height = 'auto';
           } else if (action === 'w50') {
             img.style.width = '50%';
+            img.style.height = 'auto';
           } else if (action === 'w75') {
             img.style.width = '75%';
+            img.style.height = 'auto';
           } else if (action === 'w100') {
             img.style.width = '100%';
-          } else if (action === 'move-up') {
-            if (container.previousElementSibling) {
-              container.parentNode.insertBefore(container, container.previousElementSibling);
+            img.style.height = 'auto';
+          } else if (action === 'page-prev') {
+            const pages = Array.from(this.container.querySelectorAll('.wp-a4-page'));
+            const idx = pages.indexOf(curPage);
+            if (idx > 0) {
+              const prevPage = pages[idx - 1];
+              if (container.classList.contains('wp-image-floating') || container.classList.contains('wp-image-passport')) {
+                prevPage.appendChild(container);
+              } else {
+                prevPage.querySelector('.wp-page-content').appendChild(container);
+              }
             }
-          } else if (action === 'move-down') {
-            if (container.nextElementSibling) {
-              container.parentNode.insertBefore(container.nextElementSibling, container);
+          } else if (action === 'page-next') {
+            const pages = Array.from(this.container.querySelectorAll('.wp-a4-page'));
+            const idx = pages.indexOf(curPage);
+            let nextPage = pages[idx + 1];
+            if (!nextPage) {
+              nextPage = this.addPage('');
+            }
+            if (container.classList.contains('wp-image-floating') || container.classList.contains('wp-image-passport')) {
+              nextPage.appendChild(container);
+            } else {
+              nextPage.querySelector('.wp-page-content').appendChild(container);
             }
           } else if (action === 'delete') {
             container.remove();
@@ -1464,20 +1743,25 @@
       } else if (type === 'compact') {
         pagesContainer.classList.add('margins-compact');
       }
+      this.renderRulers();
       this.schedulePagination();
     }
 
     setOrientation(type) {
       this.orientation = type;
       const pagesContainer = this.container.querySelector('#wp_pages_container');
+      const workspace = this.container.querySelector('#wp_workspace');
       if (!pagesContainer) return;
       if (type === 'landscape') {
         pagesContainer.classList.add('orientation-landscape');
+        if (workspace) workspace.classList.add('orientation-landscape');
       } else {
         pagesContainer.classList.remove('orientation-landscape');
+        if (workspace) workspace.classList.remove('orientation-landscape');
       }
       const ind = this.container.querySelectorAll('.wp-page-orientation-indicator');
       ind.forEach(el => el.textContent = type === 'landscape' ? 'A4 Landscape' : 'A4 Portrait');
+      this.renderRulers();
       this.schedulePagination();
     }
 
@@ -1507,13 +1791,11 @@
       this.updateRecordIndicator();
       this.updatePageNumbers();
       this.updateStats();
+      this.renderRulers();
 
-      // Check if existing images need wrapping
       page1.querySelectorAll('img:not(.wp-doc-image)').forEach(img => {
         this.wrapExistingImage(img);
       });
-
-      this.schedulePagination();
     }
 
     wrapExistingImage(img) {
@@ -1521,7 +1803,6 @@
       const container = document.createElement('div');
       container.className = 'wp-image-container';
       container.setAttribute('contenteditable', 'false');
-      container.setAttribute('draggable', 'true');
 
       const wrapper = document.createElement('div');
       wrapper.className = 'wp-image-wrapper';
@@ -1533,16 +1814,17 @@
       const toolbar = document.createElement('div');
       toolbar.className = 'wp-image-floating-bar';
       toolbar.innerHTML = `
-        <button type="button" class="wp-img-tool-btn" data-action="left" title="Align Left"><i class="fa-solid fa-align-left"></i></button>
-        <button type="button" class="wp-img-tool-btn" data-action="center" title="Center"><i class="fa-solid fa-align-center"></i></button>
-        <button type="button" class="wp-img-tool-btn" data-action="right" title="Align Right"><i class="fa-solid fa-align-right"></i></button>
+        <button type="button" class="wp-img-tool-btn" data-action="passport" title="Snap as Passport Photo">📷 Passport</button>
+        <button type="button" class="wp-img-tool-btn" data-action="float" title="Free Float (Over text)">🔲 Float</button>
+        <button type="button" class="wp-img-tool-btn" data-action="wrap-right" title="Wrap Right">▶ Wrap</button>
+        <button type="button" class="wp-img-tool-btn" data-action="wrap-left" title="Wrap Left">◀ Wrap</button>
+        <button type="button" class="wp-img-tool-btn" data-action="inline" title="Inline Center">■ Center</button>
         <button type="button" class="wp-img-tool-btn" data-action="w25" title="25% width">25%</button>
         <button type="button" class="wp-img-tool-btn" data-action="w50" title="50% width">50%</button>
-        <button type="button" class="wp-img-tool-btn" data-action="w75" title="75% width">75%</button>
         <button type="button" class="wp-img-tool-btn" data-action="w100" title="100% width">100%</button>
-        <button type="button" class="wp-img-tool-btn" data-action="move-up" title="Move Up"><i class="fa-solid fa-arrow-up"></i></button>
-        <button type="button" class="wp-img-tool-btn" data-action="move-down" title="Move Down"><i class="fa-solid fa-arrow-down"></i></button>
-        <button type="button" class="wp-img-tool-btn btn-danger-tool" data-action="delete" title="Delete"><i class="fa-solid fa-trash"></i></button>
+        <button type="button" class="wp-img-tool-btn" data-action="page-prev" title="Move to Prev Page">⏮</button>
+        <button type="button" class="wp-img-tool-btn" data-action="page-next" title="Move to Next Page">⏭</button>
+        <button type="button" class="wp-img-tool-btn btn-danger-tool" data-action="delete" title="Delete Image"><i class="fa-solid fa-trash"></i></button>
       `;
 
       img.classList.add('wp-doc-image');
@@ -1569,6 +1851,7 @@
         this.hideTableFloatingBar();
         this.updatePageNumbers();
         this.updateStats();
+        this.renderRulers();
       }
     }
 
@@ -1587,7 +1870,7 @@
       pagesContainer.appendChild(p1);
       this.activeContentEl = p1.querySelector('.wp-page-content');
       this.updatePageNumbers();
-      this.schedulePagination();
+      this.renderRulers();
     }
 
     exportToWord() {
