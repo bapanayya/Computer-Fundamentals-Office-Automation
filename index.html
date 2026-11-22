@@ -31,6 +31,7 @@
       document.write('<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"><\\/script>');
     }
   </script>
+  <link rel="stylesheet" href="css/presentation-tools.css">
 </head>
 <body>
 
@@ -57,6 +58,7 @@
 
     <!-- Quick Track Switcher Pills -->
     <nav class="track-switcher" aria-label="Curriculum Tracks">
+      <a href="../index.html" class="track-pill" data-track="track-master-portal" title="Return to Master Visual Guide" style="border-color: #38BDF8; color: #0284C7;"><i class="fa-solid fa-house"></i> Master Guide</a>
       <a href="#cfoa-intro" class="track-pill active" data-track="track-unit1">Unit 1: Hardware</a>
       <a href="#computer-organization-io" class="track-pill" data-track="track-unit2">Unit 2: Networks</a>
       <a href="#word-basics-interface" class="track-pill" data-track="track-unit3">Unit 3: Word &amp; PPT</a>
@@ -305,6 +307,10 @@
         </span>
       </a>
 
+            <!-- Presentation & Teacher Annotation Tools -->
+      <button class="action-pill pill-red" onclick="window.PresentationTools.toggleAnnotationToolbar();" title="Draw, write, underline, or laser-point on the page (Shortcut: Alt+P)">✏️ Pen &amp; Pointer</button>
+      <button id="presModeBtn" class="action-pill pill-blue" onclick="window.PresentationTools.togglePresentationMode();" title="Enter Presentation Mode (F11/Esc)">📽 Presentation Mode</button>
+
       <button class="theme-toggle-btn" id="theme-toggle-btn" aria-label="Toggle Dark/Light Mode" title="Toggle Theme">
         <i class="fa-solid fa-moon"></i>
       </button>
@@ -455,5 +461,6 @@
   <script src="js/navigation.js"></script>
   <script src="js/app.js"></script>
 
+  <script src="js/presentation-tools.js" defer></script>
 </body>
 </html>

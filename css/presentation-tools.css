@@ -1,0 +1,519 @@
+/* ==========================================================================
+   PRESENTATION & TEACHER ANNOTATION TOOLS SUITE
+   Department of Physics, S.V.A. Govt. Degree College, Srikalahasti
+   High-Performance Viewport-Fixed Canvas Engine (60-120 FPS) with Laser Pointer,
+   Drawing Tools, Presentation Mode & Presenter Navigation Controls.
+   ========================================================================== */
+
+/* --- Action Pills in Navbar --- */
+.action-pill {
+  padding: 8px 18px;
+  border-radius: 9999px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  font-family: inherit;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+}
+.action-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+}
+.action-pill:active {
+  transform: translateY(0);
+}
+.pill-red {
+  background: linear-gradient(135deg, #FF1744, #D50000);
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(213, 0, 0, 0.35);
+}
+.pill-red:hover {
+  box-shadow: 0 6px 18px rgba(213, 0, 0, 0.5);
+}
+.pill-blue {
+  background: linear-gradient(135deg, #1E88E5, #1565C0);
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(21, 101, 192, 0.35);
+}
+.pill-blue:hover {
+  box-shadow: 0 6px 18px rgba(21, 101, 192, 0.5);
+}
+.pill-green {
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+/* --- Brand Pulsing Dots --- */
+.laser-dot, .brand-dot-pulse {
+  width: 13px;
+  height: 13px;
+  background: #FF1744;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #FF1744, 0 0 20px #FF1744;
+  animation: dotPulse 1.5s infinite;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.brand-dot-pulse.cyan-dot {
+  background: #38BDF8;
+  box-shadow: 0 0 10px #38BDF8, 0 0 20px #38BDF8;
+}
+.brand-dot-pulse.gold-dot {
+  background: #F59E0B;
+  box-shadow: 0 0 10px #F59E0B, 0 0 20px #F59E0B;
+}
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.7; }
+}
+
+/* --- TEACHER ANNOTATION & LASER POINTER SYSTEM --- */
+#annotationContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99990;
+  pointer-events: none;
+  touch-action: none;
+  overflow: hidden;
+}
+#annotationContainer.active-drawing {
+  pointer-events: auto;
+}
+#annotationContainer.active-laser {
+  pointer-events: auto;
+  touch-action: none;
+  cursor: none;
+}
+#annotationBaseCanvas,
+#annotationActiveCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  display: block;
+}
+
+/* Custom Cursors */
+#annotationContainer.cursor-pen {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="%23D50000" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>') 2 22, crosshair;
+}
+#annotationContainer.cursor-highlighter {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="%23FFD600" d="M15.24 3.76a2.5 2.5 0 0 1 3.54 0l1.46 1.46a2.5 2.5 0 0 1 0 3.54L10.5 18.5 5 20l1.5-5.5L15.24 3.76z"/></svg>') 4 20, crosshair;
+}
+#annotationContainer.cursor-eraser {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="%2337474F" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="%2337474F"/></svg>') 12 12, cell;
+}
+
+/* Laser Pointer Dot - GPU Hardware Accelerated */
+#laserPointerDot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  pointer-events: none;
+  z-index: 99992;
+  transform: translate3d(-100px, -100px, 0) translate(-50%, -50%);
+  box-shadow: 0 0 6px #FF1744, 0 0 14px #FF1744, 0 0 26px #FF1744, 0 0 40px #D50000;
+  display: none;
+  will-change: transform;
+}
+#laserPointerDot.active {
+  display: block;
+}
+#laserPointerDot.green-laser {
+  box-shadow: 0 0 6px #00E676, 0 0 14px #00E676, 0 0 26px #00E676, 0 0 40px #00C853;
+}
+
+/* Laser Ripple Click Animation */
+.laser-ripple {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 3px solid #FF1744;
+  pointer-events: none;
+  z-index: 99991;
+  animation: rippleExpand 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+@keyframes rippleExpand {
+  0% { transform: translate3d(var(--rx, 0), var(--ry, 0), 0) translate(-50%, -50%) scale(0.4); opacity: 1; }
+  100% { transform: translate3d(var(--rx, 0), var(--ry, 0), 0) translate(-50%, -50%) scale(3.5); opacity: 0; }
+}
+
+/* Floating Launcher Pill */
+#teacherPillLauncher {
+  position: fixed;
+  bottom: 24px;
+  right: 28px;
+  z-index: 99980;
+  background: linear-gradient(135deg, #D50000, #B71C1C);
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 800;
+  border-radius: 9999px;
+  padding: 10px 22px;
+  border: 2px solid rgba(255,255,255,0.7);
+  box-shadow: 0 8px 24px rgba(213, 0, 0, 0.35);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  user-select: none;
+}
+#teacherPillLauncher:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 12px 30px rgba(213, 0, 0, 0.45);
+}
+#teacherPillLauncher.hidden {
+  display: none !important;
+}
+
+/* Floating Draggable Teacher Toolbar */
+#teacherToolbar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99995;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(14px);
+  border: 2px solid #CBD5E1;
+  border-radius: 50px;
+  padding: 8px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.08);
+  user-select: none;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+  font-family: inherit;
+}
+#teacherToolbar.minimized {
+  transform: translateX(-50%) translateY(90px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Drag Handle */
+.tb-drag-handle {
+  cursor: grab;
+  color: #94A3B8;
+  font-size: 1.15rem;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+}
+.tb-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Tool Buttons Group */
+.tb-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tb-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  background: #F1F5F9;
+  color: #334155;
+  font-size: 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  outline: none;
+}
+.tb-btn:hover {
+  background: #E2E8F0;
+  transform: scale(1.06);
+}
+.tb-btn.active {
+  background: #1E293B;
+  color: #FFFFFF;
+  border-color: #0F172A;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
+  transform: scale(1.08);
+}
+.tb-btn.active.tb-laser {
+  background: #D50000;
+  color: #FFFFFF;
+  box-shadow: 0 0 14px rgba(213, 0, 0, 0.5);
+}
+.tb-btn.active.tb-pen {
+  background: #2563EB;
+  color: #FFFFFF;
+}
+.tb-btn.active.tb-highlighter {
+  background: #CA8A04;
+  color: #FFFFFF;
+}
+.tb-btn.active.tb-eraser {
+  background: #475569;
+  color: #FFFFFF;
+}
+
+/* Dividers */
+.tb-divider {
+  width: 1.5px;
+  height: 26px;
+  background: #E2E8F0;
+  margin: 0 4px;
+}
+
+/* Color Swatches */
+.tb-color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 0 0 1.5px #CBD5E1;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.tb-color-swatch:hover {
+  transform: scale(1.15);
+}
+.tb-color-swatch.active {
+  transform: scale(1.22);
+  box-shadow: 0 0 0 2.5px #0F172A;
+}
+
+/* Width Selector */
+.tb-size-btn {
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: #F1F5F9;
+  border: 1.5px solid transparent;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.tb-size-btn:hover { background: #E2E8F0; }
+.tb-size-btn.active {
+  background: #0F172A;
+  color: #FFFFFF;
+}
+
+/* Tooltip */
+.tb-tooltip {
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0F172A;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 99999;
+}
+.tb-btn:hover .tb-tooltip, .tb-color-swatch:hover .tb-tooltip {
+  opacity: 1;
+}
+
+/* Toast Notification */
+#annotationToast {
+  position: fixed;
+  top: 75px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0F172A;
+  color: white;
+  padding: 9px 22px;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  z-index: 100010;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+#annotationToast.show {
+  opacity: 1;
+}
+
+/* --- PRESENTATION MODE SYSTEM --- */
+body.presentation-mode {
+  overflow-x: hidden;
+}
+
+/* Sleek Floating Presenter Control Bar */
+#presenterControlBar {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99985;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(56, 189, 248, 0.4);
+  border-radius: 50px;
+  padding: 6px 18px;
+  display: none;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  color: #FFFFFF;
+  user-select: none;
+  font-family: inherit;
+  animation: presenterSlideDown 0.3s ease-out;
+}
+@keyframes presenterSlideDown {
+  from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+body.presentation-mode #presenterControlBar {
+  display: flex !important;
+}
+
+.pres-brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #38BDF8;
+  text-transform: uppercase;
+}
+.pres-progress-pill {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 9999px;
+  padding: 4px 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #F8FAFC;
+}
+.pres-ctrl-btn {
+  background: #1E293B;
+  border: 1px solid #334155;
+  color: #FFFFFF;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+.pres-ctrl-btn:hover {
+  background: #38BDF8;
+  color: #0F172A;
+  border-color: #38BDF8;
+}
+.pres-ctrl-btn.exit-btn {
+  background: rgba(225, 29, 72, 0.2);
+  border-color: rgba(225, 29, 72, 0.5);
+  color: #FDA4AF;
+}
+.pres-ctrl-btn.exit-btn:hover {
+  background: #E11D48;
+  color: #FFFFFF;
+}
+
+/* Presentation Mode View Enhancements */
+body.presentation-mode .topic-card,
+body.presentation-mode .topic-section,
+body.presentation-mode .curriculum-topic-card,
+body.presentation-mode #slide-canvas,
+body.presentation-mode .glass-panel {
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+  transition: all 0.3s ease;
+}
+body.presentation-mode .glossy-heading {
+  font-size: 1.7rem;
+}
+body.presentation-mode .bullets li {
+  font-size: 1.3rem;
+  line-height: 1.9;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  #teacherPillLauncher {
+    bottom: 12px;
+    right: 12px;
+    font-size: 0.82rem;
+    padding: 7px 14px;
+    gap: 6px;
+  }
+  #teacherToolbar {
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 96vw;
+    max-width: 96vw;
+    padding: 6px 8px;
+    border-radius: 20px;
+    gap: 5px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  #teacherToolbar.minimized {
+    transform: translateX(-50%) translateY(120px);
+  }
+  .tb-btn {
+    width: 35px;
+    height: 35px;
+    font-size: 0.95rem;
+  }
+  .tb-divider {
+    height: 18px;
+    margin: 0 2px;
+  }
+  .tb-color-swatch {
+    width: 20px;
+    height: 20px;
+  }
+  .tb-size-btn {
+    padding: 2px 6px;
+    font-size: 0.72rem;
+  }
+  #presenterControlBar {
+    width: 94vw;
+    padding: 5px 10px;
+    gap: 6px;
+    justify-content: space-between;
+  }
+  .pres-brand-badge {
+    display: none;
+  }
+}
