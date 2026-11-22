@@ -138,9 +138,9 @@
         <div class="pres-brand-badge">
           <span class="laser-dot"></span> <span>PRESENTER VIEW</span>
         </div>
-        <button class="pres-ctrl-btn" onclick="window.PresentationTools.navigatePresentation(-1)" title="Previous Topic (Left Arrow)">◄ Prev</button>
-        <span class="pres-progress-pill" id="presProgress">Section 1 of 1</span>
-        <button class="pres-ctrl-btn" onclick="window.PresentationTools.navigatePresentation(1)" title="Next Topic (Right Arrow / Space)">Next ►</button>
+        <button class="pres-ctrl-btn" onclick="window.PresentationTools.navigatePresentation(-1)" title="Previous Topic / Chapter (Left Arrow)">◄ Prev</button>
+        <span class="pres-progress-pill" id="presProgress">Topic 1 of 1</span>
+        <button class="pres-ctrl-btn" onclick="window.PresentationTools.navigatePresentation(1)" title="Next Topic / Chapter (Right Arrow / Space)">Next ►</button>
         <button class="pres-ctrl-btn exit-btn" onclick="window.PresentationTools.togglePresentationMode()" title="Exit Presentation (Esc)">✖ Exit</button>
       `;
       document.body.appendChild(bar);
@@ -580,7 +580,6 @@
 
   // --- KEYBOARD SHORTCUTS ---
   function handleAnnotationShortcuts(e) {
-    // Ignore when typing inside inputs or contenteditables
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.target.isContentEditable) {
       return;
     }
@@ -635,12 +634,12 @@
 
   // --- PRESENTATION MODE CONTROLLER ---
   function collectPresentationSections() {
-    // Collect potential presentation sections on current page
     const selectors = [
       '.topic-section',
       '.curriculum-topic-card',
       '#slide-canvas',
       '.slide-stage',
+      '.lesson-body > section',
       '.topic-card',
       '.unit-card',
       'main > section',
@@ -656,7 +655,6 @@
       }
     }
 
-    // Fallback: collect major headings or sections
     if (sections.length === 0) {
       sections = Array.from(document.querySelectorAll('section, h2, h3'));
     }
@@ -671,12 +669,55 @@
   function updatePresentationProgress() {
     const progressEl = document.getElementById('presProgress');
     if (!progressEl) return;
+
+    // 1. If on single-page curriculum portal with active topic
+    const activeNav = document.querySelector('.topic-item.active .topic-title-text');
+    const allNavs = document.querySelectorAll('.topic-item');
+    if (activeNav && allNavs.length > 0) {
+      const activeIdx = Array.from(allNavs).findIndex(el => el.classList.contains('active')) + 1;
+      progressEl.innerText = `${activeNav.innerText} (${activeIdx}/${allNavs.length})`;
+      return;
+    }
+
+    // 2. If on interactive web slide deck
+    const slideBadge = document.getElementById('slide-counter') || document.getElementById('slide-badge');
+    if (slideBadge) {
+      progressEl.innerText = slideBadge.innerText;
+      return;
+    }
+
+    // 3. Fallback to section count
     const total = Math.max(1, presentationSections.length);
     const curr = Math.min(total, presentationIndex + 1);
     progressEl.innerText = `Topic ${curr} of ${total}`;
   }
 
   function navigatePresentation(dir) {
+    // A. Check if on curriculum single-page portal with Next/Prev chapter links
+    const nextBtn = document.querySelector('.nav-buttons-bar a:last-child:not(.disabled)');
+    const prevBtn = document.querySelector('.nav-buttons-bar a:first-child:not(.disabled)');
+
+    if (nextBtn || prevBtn) {
+      if (dir > 0 && nextBtn && nextBtn.href && !nextBtn.href.includes('javascript:')) {
+        nextBtn.click();
+        setTimeout(updatePresentationProgress, 200);
+        return;
+      } else if (dir < 0 && prevBtn && prevBtn.href && !prevBtn.href.includes('javascript:')) {
+        prevBtn.click();
+        setTimeout(updatePresentationProgress, 200);
+        return;
+      }
+    }
+
+    // B. Check if on interactive web slide deck (unit01_interactive.html etc.)
+    if (typeof window.nextSlide === 'function' && typeof window.prevSlide === 'function') {
+      if (dir > 0) window.nextSlide();
+      else window.prevSlide();
+      setTimeout(updatePresentationProgress, 200);
+      return;
+    }
+
+    // C. Otherwise, scroll between sections on the page
     if (presentationSections.length === 0) collectPresentationSections();
     presentationIndex += dir;
     if (presentationIndex < 0) presentationIndex = 0;
@@ -687,7 +728,6 @@
     const target = presentationSections[presentationIndex];
     if (target) {
       target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Visual accent pulse
       target.style.transition = 'box-shadow 0.4s ease';
       target.style.boxShadow = '0 0 0 4px #38BDF8, 0 16px 40px rgba(56, 189, 248, 0.25)';
       setTimeout(() => {
@@ -701,7 +741,7 @@
     document.body.classList.toggle('presentation-mode');
     const isPres = document.body.classList.contains('presentation-mode');
 
-    // Update all Presentation buttons in navbar
+    // Update all Presentation buttons
     const presBtns = document.querySelectorAll('#presModeBtn, .btn-presentation, [data-pres-toggle]');
     presBtns.forEach(btn => {
       btn.innerHTML = isPres ? '✖ Exit Presentation' : '📽 Presentation Mode';
@@ -714,13 +754,9 @@
 
     if (isPres) {
       collectPresentationSections();
-      if (presentationSections.length > 0) {
-        presentationIndex = 0;
-        navigatePresentation(0);
-      }
+      updatePresentationProgress();
       showToast("📽 Presentation Mode Active (Use Left/Right Arrows or Esc)");
 
-      // Request browser fullscreen if allowed
       if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(() => {});
       }
@@ -784,7 +820,6 @@
     navigatePresentation: navigatePresentation
   };
 
-  // Expose standard laser suite functions globally for seamless backward compatibility
   window.toggleAnnotationToolbar = toggleAnnotationToolbar;
   window.togglePresentationMode = togglePresentationMode;
   window.setAnnotationTool = setAnnotationTool;

@@ -367,7 +367,9 @@
   opacity: 1;
 }
 
-/* --- PRESENTATION MODE SYSTEM --- */
+/* ==========================================================================
+   PRESENTATION MODE SYSTEM
+   ========================================================================== */
 body.presentation-mode {
   overflow-x: hidden;
 }
@@ -415,10 +417,14 @@ body.presentation-mode #presenterControlBar {
   background: rgba(56, 189, 248, 0.15);
   border: 1px solid rgba(56, 189, 248, 0.35);
   border-radius: 9999px;
-  padding: 4px 12px;
+  padding: 4px 14px;
   font-size: 0.85rem;
   font-weight: 700;
   color: #F8FAFC;
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .pres-ctrl-btn {
   background: #1E293B;
@@ -433,6 +439,7 @@ body.presentation-mode #presenterControlBar {
   align-items: center;
   gap: 6px;
   transition: all 0.2s;
+  font-family: inherit;
 }
 .pres-ctrl-btn:hover {
   background: #38BDF8;
@@ -449,7 +456,40 @@ body.presentation-mode #presenterControlBar {
   color: #FFFFFF;
 }
 
-/* Presentation Mode View Enhancements */
+/* Course Portals Full-Width Presentation View */
+body.presentation-mode .app-sidebar,
+body.presentation-mode .sidebar-resizer,
+body.presentation-mode .sidebar-floating-toggle,
+body.presentation-mode .sidebar-backdrop,
+body.presentation-mode #sidebar {
+  display: none !important;
+  width: 0 !important;
+}
+
+body.presentation-mode .app-main {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 30px 48px 100px !important;
+}
+
+body.presentation-mode .content-wrapper,
+body.presentation-mode .lesson-body {
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+  font-size: 1.25rem !important;
+  line-height: 1.85 !important;
+}
+
+body.presentation-mode .lesson-title {
+  font-size: 2.6rem !important;
+  margin-bottom: 1.2rem !important;
+}
+
+body.presentation-mode .lesson-lead {
+  font-size: 1.35rem !important;
+  line-height: 1.7 !important;
+}
+
 body.presentation-mode .topic-card,
 body.presentation-mode .topic-section,
 body.presentation-mode .curriculum-topic-card,
